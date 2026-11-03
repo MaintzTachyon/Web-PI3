@@ -1,0 +1,32 @@
+aula: L419
+grupo: grupo1
+sensores:
+  - id: sensor-co2-01
+    nodo: 1
+    medicion: co2
+    etiqueta: "CO₂"
+    periodo_s: 5
+    caduca_s: 30
+    ubicacion: {x: null, y: null}
+    variable_principal: co2_ppm
+    estado: {regla: nivel_nodo, campo: nivel}
+    variables:
+      co2_ppm: {etiqueta: "CO₂", unidad: ppm, decimales: 0, agregacion: mean, invalidos: [-1, -2]}
+      delta_30s: {etiqueta: "Cambio en 30 s", unidad: ppm, decimales: 0, agregacion: mean}
+      temp_c: {etiqueta: "Temp. interna del sensor", unidad: "°C", decimales: 0, agregacion: mean, uso: diagnostico}
+  - id: sensor-audio-01
+    nodo: 2
+    medicion: audio
+    etiqueta: "Ruido"
+    periodo_s: 1
+    caduca_s: 10
+    ubicacion: {x: null, y: null}
+    variable_principal: leq_db
+    estado: {regla: anomalias_nodo, campo: anomalias, calibrando: calibrando}
+    variables:
+      leq_db: {etiqueta: "Nivel equivalente", unidad: dB, decimales: 1, agregacion: mean}
+      lmax_db: {etiqueta: "Máximo", unidad: dB, decimales: 1, agregacion: max}
+      pico_db: {etiqueta: "Pico", unidad: dB, decimales: 1, agregacion: max}
+      base_db: {etiqueta: "Ruido de fondo", unidad: dB, decimales: 1, agregacion: mean}
+      freq_dom_hz: {etiqueta: "Frecuencia dominante", unidad: Hz, decimales: 0, agregacion: mean}
+

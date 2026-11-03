@@ -1,0 +1,7 @@
+{
+  "name": "gemelo-digital-l419-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interfaz web del gemelo digital del aula L419"
+}

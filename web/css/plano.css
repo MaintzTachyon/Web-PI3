@@ -1,0 +1,8 @@
+.room { fill: #162331; stroke: #47627b; stroke-width: 3; }
+.board { fill: #24455a; stroke: #6a9ab8; stroke-width: 2; }
+.room-label, .fixture-label { fill: #93afc4; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.door { fill: #ca9b64; }.window { fill: #4b8aa3; stroke: #8ed3df; stroke-width: 2; }.window path { stroke: #8ed3df; }
+.table rect { fill: #24394b; stroke: #456177; stroke-width: 2; }.table circle { fill: #172936; stroke: #55748a; stroke-width: 2; }
+.sensor-marker { cursor: pointer; outline: none; }.sensor-marker .marker-halo { fill: #56d6c61c; stroke: #56d6c680; stroke-width: 2; transition: .2s; }.sensor-marker .marker-core { fill: #56d6c6; stroke: #d8fffa; stroke-width: 2; }.sensor-marker text { fill: #07151a; font-size: 9px; font-weight: 900; }.sensor-marker .marker-label { fill: #b6d2de; font-size: 10px; letter-spacing: 1px; }
+.sensor-marker:hover .marker-halo, .sensor-marker.selected .marker-halo { fill: #56d6c645; stroke: #b3fff5; stroke-width: 3; }.sensor-marker.selected .marker-core { fill: #b3fff5; }
+.sensor-marker[data-state="alerta"] .marker-core { fill: var(--warning); }.sensor-marker[data-state="critico"], .sensor-marker[data-state="falla"] .marker-core { fill: var(--danger); }.sensor-marker[data-state="sin_datos"] .marker-core { fill: #8293a1; }
