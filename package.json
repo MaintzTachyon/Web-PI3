@@ -1,0 +1,22 @@
+{
+  "name": "l419",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaintzTachyon/Web-PI3.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MaintzTachyon/Web-PI3/issues"
+  },
+  "homepage": "https://github.com/MaintzTachyon/Web-PI3#readme",
+  "dependencies": {
+    "chart.js": "^4.6.1"
+  }
+}
