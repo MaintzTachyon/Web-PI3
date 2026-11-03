@@ -61,7 +61,7 @@ class Servicio:
             edad_s=round(age, 2),
             variables=variables,
             anomalias=[] if anomalies == "NINGUNA" else [item for item in anomalies.split("|") if item],
-            diagnostico=Diagnostico(seq=fields.get("seq"), perdidos=fields.get("perdidos")),
+            diagnostico=Diagnostico(seq=_entero(fields.get("seq")), perdidos=_entero(fields.get("perdidos"))),
         )
 
     def _sin_datos(self, sensor: SensorConfig) -> LecturaSensor:
@@ -108,12 +108,21 @@ class Servicio:
     async def salud(self) -> SaludRespuesta:
         latest = await self.ultimas()
         count = sum(reading.estado != "sin_datos" for reading in latest.sensores)
-        connection = "en_linea" if count == len(latest.sensores) else "parcial" if count else "sin_datos"
         influx_ok = await self.repository.disponible()
         return SaludRespuesta(
             influx="ok" if influx_ok else "no_disponible",
-            conexion=connection,
+            conexion=conexion(latest.sensores),
             sensores_esperados=len(latest.sensores),
             sensores_con_datos=count,
         )
+
+
+def conexion(lecturas: list[LecturaSensor]) -> str:
+    count = sum(reading.estado != "sin_datos" for reading in lecturas)
+    return "en_linea" if lecturas and count == len(lecturas) else "parcial" if count else "sin_datos"
+
+
+def _entero(value: Any) -> int | None:
+    # Telegraf guarda los números del JSON como float (seq = 1234.0).
+    return int(value) if isinstance(value, (int, float)) else None
 

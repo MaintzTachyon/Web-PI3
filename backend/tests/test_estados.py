@@ -10,6 +10,7 @@ def test_fallos_y_caducidad_co2():
     assert estado_nivel_nodo({"co2_ppm": -1, "nivel": "NORMAL"}, 1, 30) == "falla"
     assert estado_nivel_nodo({"co2_ppm": -2, "nivel": "NORMAL"}, 1, 30) == "falla"
     assert estado_nivel_nodo({"nivel": "NORMAL"}, 31, 30) == "sin_datos"
+    assert estado_nivel_nodo({"co2_ppm": 600.0, "nivel": "NORMAL", "anomalias": "FALLO_SENSOR"}, 1, 30) == "falla"
 
 
 def test_estados_audio():

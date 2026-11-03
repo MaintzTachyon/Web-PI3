@@ -9,8 +9,29 @@ from .registro import SensorConfig
 RANGOS = {"15m": (900, 10), "1h": (3600, 30), "6h": (21600, 120), "24h": (86400, 300), "7d": (604800, 1800)}
 
 
+TOLERANCIA_S = 1.0
+
+
 class InfluxUnavailable(RuntimeError):
     pass
+
+
+def combinar_ultimos(records: list[Any]) -> dict[str, Any] | None:
+    """Une el last() de cada field en una lectura, sin pivot (guía, sección 8.1).
+
+    Un field que llegó como null en el último paquete no se guarda, así que su
+    last() es de un paquete anterior; esos fields obsoletos se descartan.
+    """
+    con_hora = [record for record in records if record.get_time()]
+    if not con_hora:
+        return None
+    actualizado: datetime = max(record.get_time() for record in con_hora)
+    fields = {
+        str(record.get_field()): record.get_value()
+        for record in con_hora
+        if (actualizado - record.get_time()).total_seconds() <= TOLERANCIA_S
+    }
+    return {"fields": fields, "time": actualizado}
 
 
 class InfluxRepository:
@@ -41,17 +62,7 @@ class InfluxRepository:
             f'r.nodo == "{sensor.nodo}" and r.grupo == "{self.settings.grupo}") |> last()'
         )
         tables = await asyncio.to_thread(self._query, query)
-        fields: dict[str, Any] = {}
-        timestamps: list[datetime] = []
-        for table in tables:
-            for record in table.records:
-                fields[str(record.get_field())] = record.get_value()
-                timestamp = record.get_time()
-                if timestamp:
-                    timestamps.append(timestamp)
-        if not timestamps:
-            return None
-        return {"fields": fields, "time": max(timestamps)}
+        return combinar_ultimos([record for table in tables for record in table.records])
 
     async def historial(self, sensor: SensorConfig, variable: str, rango: str) -> list[tuple[datetime, float]]:
         seconds, window = RANGOS[rango]

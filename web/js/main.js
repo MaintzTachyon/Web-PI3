@@ -1,56 +1,85 @@
 import { activarDemo, cargarCatalogo, cargarUltimas, desactivarDemo, suscribirStream } from "./datos.js";
 import { limpiarGrafico } from "./graficos.js";
 import { configurarPlano, actualizarMarcadores } from "./plano.js";
-import { getReading, getSelectedId, renderCards, renderDetail, selectSensor, setCatalog, setReadings } from "./sensores.js";
+import { lecturasSinDatos, renderCards, renderDetail, selectSensor, setCatalog, setReadings } from "./sensores.js";
 
 const connection = document.querySelector("#connection-status");
+const CONEXION = {
+  en_linea: ["online", "En línea"],
+  parcial: ["partial", "Conexión parcial"],
+  sin_datos: ["offline", "Sin datos de sensores"],
+};
 let selectedId;
 let cleanupStream;
+let refreshTimer;
 
 async function init() {
-  try {
-    const catalog = await cargarCatalogo();
-    setCatalog(catalog.sensores);
-    desactivarDemo();
-    await refresh();
-    cleanupStream = suscribirStream({ onReading: handleReading, onConnection: handleConnection, onError: handleStreamError });
-  } catch {
-    activarDemo();
-    await refresh();
-    setConnection("offline", "Modo DEMO · API no disponible");
-  }
   configurarPlano(select);
   document.querySelector("#clear-selection").addEventListener("click", clearSelection);
   document.querySelector("#history-range").addEventListener("change", () => selectedId && selectSensor(selectedId, document.querySelector("#history-range").value));
   window.addEventListener("beforeunload", () => cleanupStream?.());
+
+  let catalog;
+  try {
+    catalog = await cargarCatalogo();
+  } catch {
+    // Sin backend: datos de ejemplo, marcados como DEMO.
+    activarDemo();
+    await refresh();
+    setConnection("offline", "Modo DEMO · API no disponible");
+    return;
+  }
+  setCatalog(catalog.sensores);
+  desactivarDemo();
+  try {
+    await refresh();
+  } catch {
+    // El backend responde pero InfluxDB no: se muestran los sensores sin datos, nunca datos inventados.
+    pintar(lecturasSinDatos());
+    setConnection("offline", "InfluxDB no disponible");
+  }
+  cleanupStream = suscribirStream({ onReading: handleReading, onConnection: handleConnection, onError: handleStreamError });
 }
 
 async function refresh() {
   const response = await cargarUltimas();
-  setReadings(response.sensores);
+  pintar(response.sensores);
   document.querySelector("#origin-badge").hidden = response.origen !== "demo";
-  renderCards(select);
-  actualizarMarcadores(response.sensores);
   document.querySelector("#last-updated").textContent = new Date(response.generado).toLocaleTimeString("es-PE");
-  setConnection(response.origen === "demo" ? "partial" : "online", response.origen === "demo" ? "Datos DEMO" : "En línea");
+  if (response.origen === "demo") setConnection("partial", "Datos DEMO");
+  else handleConnection({ conexion: conexionDe(response.sensores) });
+}
+
+function pintar(lecturas) {
+  setReadings(lecturas);
+  renderCards(select);
+  actualizarMarcadores(lecturas);
   if (selectedId) renderDetail();
 }
 
+function conexionDe(lecturas) {
+  const conDatos = lecturas.filter((reading) => reading.estado !== "sin_datos").length;
+  return conDatos && conDatos === lecturas.length ? "en_linea" : conDatos ? "parcial" : "sin_datos";
+}
+
 function handleReading(reading) {
-  setReadings([reading]);
-  renderCards(select);
-  actualizarMarcadores([reading]);
-  document.querySelector("#last-updated").textContent = new Date(reading.actualizado).toLocaleTimeString("es-PE");
-  if (selectedId === reading.id) renderDetail();
+  pintar([reading]);
+  if (reading.actualizado) document.querySelector("#last-updated").textContent = new Date(reading.actualizado).toLocaleTimeString("es-PE");
 }
 
 function handleConnection(info) {
-  setConnection(info.conexion === "en_linea" ? "online" : info.conexion === "parcial" ? "partial" : "offline", info.conexion.replace("_", " "));
+  if (info.influx === "no_disponible") return setConnection("offline", "InfluxDB no disponible");
+  const [state, label] = CONEXION[info.conexion] ?? CONEXION.sin_datos;
+  setConnection(state, label);
 }
 
 function handleStreamError() {
   setConnection("partial", "Reconectando...");
-  window.setTimeout(() => refresh().catch(() => {}), 5000);
+  if (refreshTimer) return;
+  refreshTimer = window.setTimeout(() => {
+    refreshTimer = undefined;
+    refresh().catch(() => {});
+  }, 5000);
 }
 
 function setConnection(state, label) {

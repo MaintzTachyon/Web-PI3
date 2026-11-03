@@ -271,7 +271,44 @@ Si la API no está disponible, la interfaz activa automáticamente el modo DEMO
 y muestra la etiqueta correspondiente. En producción, lo recomendable es
 servir frontend y API desde el mismo origen y usar una URL base vacía.
 
-## Ejecutar todo en desarrollo
+## Ejecutar todo con un solo comando (recomendado)
+
+El backend también sirve la carpeta `web/`, así que página y API comparten
+origen (sin CORS ni segundo servidor):
+
+```bash
+cd backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Abrir <http://127.0.0.1:8000>. El frontend detecta que está en el mismo
+origen y usa la API de ese mismo servidor. Con `WEB_DIR` se puede indicar otra
+carpeta del frontend (por ejemplo `/app/web` en Docker).
+
+### Leer los sensores reales de CO₂ y ruido
+
+1. Levantar el stack de adquisición (`servidor_iot/`: Mosquitto, Telegraf e
+   InfluxDB) y encender el gateway y los nodos 1 (CO₂) y 2 (audio). El gateway
+   debe publicar con `GRUPO = "grupo1"` (o el valor de `GRUPO` del backend).
+2. Crear un token de **solo lectura** del bucket `gemelo` (ver la guía del
+   backend, sección 10).
+3. En `backend/.env`:
+
+   ```env
+   BACKEND_MODO=real
+   INFLUX_URL=http://localhost:8086
+   INFLUX_TOKEN_LECTURA=<token de solo lectura>
+   GRUPO=grupo1
+   ```
+
+4. Ejecutar el comando de arriba y abrir <http://127.0.0.1:8000>.
+
+El indicador del encabezado muestra `En línea` (los dos sensores envían),
+`Conexión parcial` (solo uno), `Sin datos de sensores` o
+`InfluxDB no disponible`. Si InfluxDB falla, los sensores aparecen como
+*sin datos*; los datos DEMO solo se usan cuando no hay backend.
+
+## Ejecutar frontend y backend por separado
 
 Se necesitan dos terminales.
 
