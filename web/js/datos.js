@@ -1,8 +1,11 @@
 import { sensoresDemo } from "../data/sensores-demo.js";
 
-export const API_BASE = window.GEMELO_API_BASE ?? "http://127.0.0.1:8000";
+// Servido por el backend (puerto 8000 o producción) → mismo origen.
+// Servido aparte con Live Server / http.server (puerto 5500) → API en 127.0.0.1:8000.
+const DEV_PORTS = ["5500", "5501"];
+export const API_BASE = window.GEMELO_API_BASE ?? (DEV_PORTS.includes(location.port) ? "http://127.0.0.1:8000" : "");
+const REINTENTO_MS = 5000;
 let demoMode = false;
-let stream;
 
 async function request(path) {
   const response = await fetch(`${API_BASE}${path}`);
@@ -40,9 +43,26 @@ export function desactivarDemo() {
 
 export function suscribirStream({ onReading, onConnection, onError }) {
   if (demoMode) return () => {};
-  stream = new EventSource(`${API_BASE}/api/v1/stream`);
-  stream.addEventListener("lectura", (event) => onReading(JSON.parse(event.data)));
-  stream.addEventListener("conexion", (event) => onConnection(JSON.parse(event.data)));
-  stream.onerror = onError;
-  return () => stream?.close();
+  let stream;
+  let retry;
+  let cerrado = false;
+  const abrir = () => {
+    stream = new EventSource(`${API_BASE}/api/v1/stream`);
+    stream.addEventListener("lectura", (event) => onReading(JSON.parse(event.data)));
+    stream.addEventListener("conexion", (event) => onConnection(JSON.parse(event.data)));
+    stream.onerror = () => {
+      onError();
+      // EventSource reintenta solo; si el servidor lo cerró del todo, se reabre a mano.
+      if (stream.readyState === EventSource.CLOSED && !cerrado) {
+        window.clearTimeout(retry);
+        retry = window.setTimeout(abrir, REINTENTO_MS);
+      }
+    };
+  };
+  abrir();
+  return () => {
+    cerrado = true;
+    window.clearTimeout(retry);
+    stream?.close();
+  };
 }

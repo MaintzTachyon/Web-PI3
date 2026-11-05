@@ -6,7 +6,7 @@ from .modelos import Estado
 def estado_nivel_nodo(fields: Mapping[str, object], edad_s: float, caduca_s: float) -> Estado:
     if edad_s > caduca_s:
         return "sin_datos"
-    if fields.get("co2_ppm") in (-1, -2) or "FALLO_SENSOR" in str(fields.get("anom_bits", "")):
+    if fields.get("co2_ppm") in (-1, -2) or "FALLO_SENSOR" in str(fields.get("anomalias", "")):
         return "falla"
     return {
         "NORMAL": "normal",

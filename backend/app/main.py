@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import SENSORES_PATH, get_settings
 from .influx import InfluxRepository
@@ -40,6 +41,9 @@ def create_app() -> FastAPI:
     app.include_router(sensores.router, prefix="/api/v1")
     app.include_router(lecturas.router, prefix="/api/v1")
     app.include_router(stream.router, prefix="/api/v1")
+    # Frontend y API en el mismo origen: no se necesita CORS ni un segundo servidor.
+    if settings.carpeta_web:
+        app.mount("/", StaticFiles(directory=settings.carpeta_web, html=True), name="web")
     return app
 
 
