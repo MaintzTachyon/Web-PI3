@@ -1,22 +1,35 @@
 import { activarDemo, cargarCatalogo, cargarUltimas, desactivarDemo, suscribirStream } from "./datos.js";
 import { limpiarGrafico } from "./graficos.js";
-import { configurarPlano, actualizarMarcadores } from "./plano.js";
-import { lecturasSinDatos, renderCards, renderDetail, selectSensor, setCatalog, setReadings } from "./sensores.js";
-
+import { configurarPlano, actualizarMarcadores, seleccionarMarcador } from "./plano.js";
+import {
+  lecturasSinDatos,
+  renderEstaciones,
+  renderDetail,
+  selectSensor,
+  setCatalog,
+  setReadings,
+} from "./sensores.js";
+const floorplan = document.querySelector("#floorplan");
 const connection = document.querySelector("#connection-status");
+
 const CONEXION = {
   en_linea: ["online", "En línea"],
   parcial: ["partial", "Conexión parcial"],
   sin_datos: ["offline", "Sin datos de sensores"],
 };
+
 let selectedId;
 let cleanupStream;
 let refreshTimer;
 
 async function init() {
-  configurarPlano(select);
+  // Los marcadores se dibujan desde la configuración centralizada.
+  configurarPlano(select, floorplan);
+
   document.querySelector("#clear-selection").addEventListener("click", clearSelection);
-  document.querySelector("#history-range").addEventListener("change", () => selectedId && selectSensor(selectedId, document.querySelector("#history-range").value));
+  document.querySelector("#history-range").addEventListener("change", () => {
+    if (selectedId) selectSensor(selectedId, document.querySelector("#history-range").value);
+  });
   window.addEventListener("beforeunload", () => cleanupStream?.());
 
   let catalog;
@@ -52,7 +65,7 @@ async function refresh() {
 
 function pintar(lecturas) {
   setReadings(lecturas);
-  renderCards(select);
+  renderEstaciones(select);
   actualizarMarcadores(lecturas);
   if (selectedId) renderDetail();
 }
@@ -74,7 +87,7 @@ function handleConnection(info) {
 }
 
 function handleStreamError() {
-  setConnection("partial", "Reconectando...");
+  setConnection("partial", "Reconectando…");
   if (refreshTimer) return;
   refreshTimer = window.setTimeout(() => {
     refreshTimer = undefined;
@@ -89,8 +102,9 @@ function setConnection(state, label) {
 
 function select(id) {
   selectedId = id;
+  seleccionarMarcador(id);
   selectSensor(id, document.querySelector("#history-range").value);
-  renderCards(select);
+  renderEstaciones(select);
 }
 
 function clearSelection() {
@@ -98,6 +112,7 @@ function clearSelection() {
   document.querySelector("#detail-empty").hidden = false;
   document.querySelector("#sensor-detail").hidden = true;
   document.querySelectorAll(".sensor-marker").forEach((marker) => marker.classList.remove("selected"));
+  document.querySelectorAll(".sensor-estacion").forEach((estacion) => estacion.classList.remove("selected"));
   limpiarGrafico();
 }
 

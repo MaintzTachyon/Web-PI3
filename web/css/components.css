@@ -1,29 +1,187 @@
-.sensor-card { background: #1a2938; border: 1px solid transparent; border-radius: 14px; cursor: pointer; padding: 16px; transition: border-color .2s, transform .2s, background .2s; }
-.sensor-card:hover, .sensor-card.selected { background: #203448; border-color: #56d6c680; transform: translateY(-2px); }
-.sensor-card-header, .sensor-card-reading, .sensor-card-footer, .detail-measure, .variable-row { align-items: center; display: flex; justify-content: space-between; gap: 10px; }
-.sensor-card-header { color: var(--muted); font-size: .75rem; }
-.sensor-card-name { color: var(--text); font-size: .95rem; font-weight: 700; }
-.sensor-card-reading { justify-content: flex-start; margin: 15px 0 10px; }
-.sensor-card-value, .detail-value { font-size: 2rem; font-weight: 750; letter-spacing: -.06em; }
-.sensor-card-unit, .detail-unit { color: var(--muted); font-size: .85rem; }
-.sensor-card-footer { color: var(--muted); font-size: .7rem; }
-.status-badge { color: var(--accent); background: #56d6c61c; text-transform: uppercase; }
-.status-badge.alerta, .status-badge.calibrando { color: var(--warning); background: #f4bc621c; }
-.status-badge.critico, .status-badge.falla { color: var(--danger); background: #ff6d781c; }
-.status-badge.sin_datos { color: var(--muted); background: #91a3b51c; }
-.detail-empty { align-items: center; display: flex; flex-direction: column; justify-content: center; min-height: 155px; text-align: center; }
-.detail-empty h2 { margin: 10px 0 6px; }
-.detail-empty p { color: var(--muted); font-size: .85rem; }
-.detail-icon { color: var(--accent); font-size: 2rem; }
-.ghost-button { background: transparent; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); cursor: pointer; font-size: .75rem; padding: 8px 11px; }
-.ghost-button:hover { border-color: var(--accent); color: var(--text); }
-.detail-measure { align-items: flex-start; flex-wrap: wrap; justify-content: flex-start; }
-.detail-measure .status-badge { align-self: center; margin-left: 4px; }
-.variables-grid { border-left: 1px solid var(--border); padding-left: 20px; }
-.variable-row { border-bottom: 1px solid #26364880; padding: 10px 0; }
+/* Estación de sensor: una por sensor, no tarjetas clonadas idénticas */
+.sensor-estacion {
+  background: #1c293d;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sensor-estacion:hover {
+  background: #23344a;
+  border-color: #60a5fa66;
+}
+.sensor-estacion.selected {
+  background: #263850;
+  border-color: var(--linea-plano);
+  box-shadow: 0 0 0 1px var(--linea-plano);
+}
+
+.sensor-estacion-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sensor-estacion-tipo {
+  color: var(--grafito);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.sensor-estacion-estado {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.sensor-estacion-lectura {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sensor-estacion-valor {
+  font-family: var(--fuente-datos);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--tiza);
+}
+.sensor-estacion-unidad {
+  color: var(--grafito);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.sensor-estacion-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--tiza-atenuada);
+  margin-top: auto;
+}
+
+/* Badges de estado: sin mayúsculas forzadas, color codifica el estado */
+.status-badge {
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 5px 9px;
+}
+.status-badge.normal {
+  color: var(--tiza-verde);
+  background: #86efac1c;
+}
+.status-badge.alerta,
+.status-badge.calibrando {
+  color: var(--ocre);
+  background: #fbbf241c;
+}
+.status-badge.critico,
+.status-badge.falla {
+  color: var(--terracota);
+  background: #ef44441c;
+}
+.status-badge.sin_datos {
+  color: var(--plomo);
+  background: #64748b1c;
+}
+
+.detail-empty {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+  text-align: center;
+}
+.detail-empty h2 { margin: 12px 0 8px; }
+.detail-empty p { color: var(--grafito); font-size: 0.85rem; }
+.detail-icon { color: var(--linea-plano); font-size: 2.25rem; }
+
+.ghost-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--grafito);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 8px 12px;
+}
+.ghost-button:hover {
+  border-color: var(--linea-plano);
+  color: var(--tiza);
+}
+
+.detail-measure {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+}
+.detail-measure .status-badge { align-self: center; margin-left: 6px; }
+
+.detail-value {
+  font-family: var(--fuente-datos);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: var(--tiza);
+}
+.detail-unit {
+  color: var(--grafito);
+  font-size: 1rem;
+  font-weight: 500;
+  align-self: center;
+}
+
+.variables-grid {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+.variable-row {
+  border-bottom: 1px solid #2d425980;
+  padding: 10px 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
 .variable-row:first-child { padding-top: 0; }
-.variable-label { color: var(--muted); font-size: .75rem; }
-.variable-value { font-size: .85rem; font-weight: 700; }
-.variable-value small { color: var(--muted); font-weight: 400; }
-.chart-heading label { color: var(--muted); font-size: .75rem; }
-select { background: var(--panel-light); border: 1px solid var(--border); border-radius: 7px; color: var(--text); margin-left: 5px; padding: 6px 8px; }
+.variable-label {
+  color: var(--grafito);
+  font-size: 0.75rem;
+}
+.variable-value {
+  font-family: var(--fuente-datos);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tiza);
+}
+.variable-value small {
+  color: var(--grafito);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.chart-heading label {
+  color: var(--grafito);
+  font-size: 0.75rem;
+}
+select {
+  background: var(--panel-light);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--tiza);
+  margin-left: 6px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}

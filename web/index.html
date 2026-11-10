@@ -5,27 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Gemelo digital del aula L419" />
     <title>Gemelo Digital — Aula L419</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Code+Variable:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">MONITOREO AMBIENTAL</p>
-          <h1>Gemelo Digital <span>— Aula L419</span></h1>
+          <p class="eyebrow">Gemelo digital del aula</p>
+          <h1>L419 <span>— Monitoreo ambiental</span></h1>
         </div>
         <div class="connection" id="connection-status" data-state="loading">
           <span class="connection-dot" aria-hidden="true"></span>
-          <span id="connection-label">Conectando...</span>
+          <span id="connection-label">Conectando…</span>
         </div>
       </header>
 
       <main>
-        <section class="hero-grid" aria-label="Vista del aula">
+        <!-- Héroe: el plano del aula es la interfaz principal -->
+        <section class="hero" aria-label="Plano del aula L419">
           <div class="panel floorplan-panel">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">VISTA EN TIEMPO REAL</p>
+                <p class="eyebrow">Plano del aula</p>
                 <h2>Aula L419</h2>
               </div>
               <span class="demo-badge" id="origin-badge" hidden>DEMO</span>
@@ -36,8 +43,9 @@
                 class="floorplan"
                 viewBox="0 0 900 560"
                 role="img"
-                aria-label="Plano esquemático del aula L419"
+                aria-label="Plano esquemático del aula L419 con sensores"
               >
+                <!-- Estructura del aula (estática) -->
                 <rect class="room" x="30" y="30" width="840" height="500" rx="14" />
                 <rect class="board" x="330" y="45" width="240" height="30" rx="5" />
                 <text class="room-label" x="450" y="66" text-anchor="middle">PIZARRA</text>
@@ -70,18 +78,8 @@
                 </g>
                 <text class="fixture-label" x="450" y="490" text-anchor="middle">MESAS DE TRABAJO</text>
 
-                <g class="sensor-marker" data-sensor-id="sensor-co2-01" tabindex="0" role="button" aria-label="Sensor de CO₂">
-                  <circle class="marker-halo" cx="115" cy="125" r="28" />
-                  <circle class="marker-core" cx="115" cy="125" r="19" />
-                  <text x="115" y="131" text-anchor="middle">CO₂</text>
-                  <text class="marker-label" x="115" y="168" text-anchor="middle">CO₂</text>
-                </g>
-                <g class="sensor-marker" data-sensor-id="sensor-audio-01" tabindex="0" role="button" aria-label="Sensor de ruido">
-                  <circle class="marker-halo" cx="785" cy="420" r="28" />
-                  <circle class="marker-core" cx="785" cy="420" r="19" />
-                  <text x="785" y="426" text-anchor="middle">dB</text>
-                  <text class="marker-label" x="785" y="463" text-anchor="middle">RUIDO</text>
-                </g>
+                <!-- Los marcadores de sensores se inyectan dinámicamente desde js/sensores-config.js -->
+                <g id="marcadores-sensores"></g>
               </svg>
             </div>
             <div class="legend">
@@ -89,23 +87,26 @@
               <span><i class="legend-dot alerta"></i>Alerta</span>
               <span><i class="legend-dot critico"></i>Crítico</span>
               <span><i class="legend-dot sin_datos"></i>Sin datos</span>
+              <span><i class="legend-dot falla"></i>Falla</span>
             </div>
           </div>
-
-          <aside class="panel readings-panel" aria-label="Lecturas actuales">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">LECTURAS ACTUALES</p>
-                <h2>Sensores</h2>
-              </div>
-              <span class="live-pill"><span></span> LIVE</span>
-            </div>
-            <div id="sensor-cards" class="sensor-cards">
-              <div class="loading-state">Cargando sensores...</div>
-            </div>
-          </aside>
         </section>
 
+        <!-- Lecturas de sensores: estación de cada sensor, no tarjetas clonadas -->
+        <section class="lecturas" aria-label="Lecturas actuales de los sensores">
+          <div class="lecturas-heading">
+            <div>
+              <p class="eyebrow">Estado de los sensores</p>
+              <h2>Lecturas actuales</h2>
+            </div>
+            <span class="live-pill"><span></span> En vivo</span>
+          </div>
+          <div id="sensor-estaciones" class="sensor-estaciones">
+            <div class="loading-state">Cargando sensores…</div>
+          </div>
+        </section>
+
+        <!-- Detalle del sensor seleccionado + historial -->
         <section class="panel detail-panel" id="detail-panel" aria-live="polite">
           <div class="detail-empty" id="detail-empty">
             <span class="detail-icon">⌖</span>
@@ -115,7 +116,7 @@
           <div id="sensor-detail" hidden>
             <div class="detail-header">
               <div>
-                <p class="eyebrow">DETALLE DEL SENSOR</p>
+                <p class="eyebrow">Detalle del sensor</p>
                 <h2 id="detail-title">—</h2>
                 <p id="detail-meta" class="muted">—</p>
               </div>
@@ -155,6 +156,7 @@
         <span>Última actualización: <strong id="last-updated">—</strong></span>
       </footer>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
     <script type="module" src="js/main.js"></script>
   </body>

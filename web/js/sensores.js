@@ -21,17 +21,39 @@ export function lecturasSinDatos() {
   }));
 }
 
-export function renderCards(onSelect) {
-  const container = document.querySelector("#sensor-cards");
+/**
+ * Renderiza una "estación" por sensor (fila debajo del plano), no tarjetas clonadas.
+ * Solo el sensor seleccionado se resalta visualmente.
+ */
+export function renderEstaciones(onSelect) {
+  const container = document.querySelector("#sensor-estaciones");
   container.replaceChildren();
   readings.forEach((reading) => {
-    const card = document.createElement("article");
-    card.className = `sensor-card${reading.id === selectedId ? " selected" : ""}`;
-    card.tabIndex = 0;
-    card.innerHTML = `<div class="sensor-card-header"><span>${reading.tipo.toUpperCase()}</span><span class="status-badge ${reading.estado}">${reading.estado.replace("_", " ")}</span></div><div class="sensor-card-reading"><strong class="sensor-card-value">${formatValue(reading.id, principal(reading), reading.valor)}</strong><span class="sensor-card-unit">${reading.unidad}</span></div><div class="sensor-card-footer"><span>${reading.etiqueta}</span><span>${formatTime(reading.actualizado)}</span></div>`;
-    card.addEventListener("click", () => onSelect(reading.id));
-    card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") onSelect(reading.id); });
-    container.append(card);
+    const estacion = document.createElement("article");
+    estacion.className = `sensor-estacion${reading.id === selectedId ? " selected" : ""}`;
+    estacion.tabIndex = 0;
+    estacion.setAttribute("aria-label", `${reading.etiqueta}: ${formatValue(reading.id, principal(reading), reading.valor)} ${reading.unidad}, estado ${reading.estado.replace("_", " ")}`);
+
+    const valor = formatValue(reading.id, principal(reading), reading.valor);
+    estacion.innerHTML = `
+      <div class="sensor-estacion-header">
+        <span class="sensor-estacion-tipo">${reading.tipo}</span>
+        <span class="sensor-estacion-estado status-badge ${reading.estado}">${reading.estado.replace("_", " ")}</span>
+      </div>
+      <div class="sensor-estacion-lectura">
+        <strong class="sensor-estacion-valor">${valor}</strong>
+        <span class="sensor-estacion-unidad">${reading.unidad}</span>
+      </div>
+      <div class="sensor-estacion-footer">
+        <span>${reading.etiqueta}</span>
+        <span>${formatTime(reading.actualizado)}</span>
+      </div>
+    `;
+    estacion.addEventListener("click", () => onSelect(reading.id));
+    estacion.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") onSelect(reading.id);
+    });
+    container.append(estacion);
   });
 }
 
@@ -42,7 +64,7 @@ export async function selectSensor(id, range = "1h") {
   const reading = readings.get(id);
   if (!reading) return;
   const message = document.querySelector("#chart-message");
-  message.textContent = "Cargando historial...";
+  message.textContent = "Cargando historial…";
   try {
     const history = await cargarHistorial(id, principal(reading), range);
     actualizarGrafico(document.querySelector("#history-chart"), history, reading.etiqueta);
@@ -57,7 +79,7 @@ export function renderDetail() {
   document.querySelector("#sensor-detail").hidden = false;
   document.querySelector("#detail-title").textContent = reading.etiqueta;
   document.querySelector("#detail-meta").textContent = `Nodo ${reading.nodo} · Actualizado ${formatTime(reading.actualizado)}`;
-  document.querySelector("#detail-value").textContent = formatValue(reading.id, principal(reading), reading.valor);
+  document.querySelector("#detail-value").textContent = formatValue(selectedId, principal(reading), reading.valor);
   document.querySelector("#detail-unit").textContent = reading.unidad;
   const status = document.querySelector("#detail-status");
   status.className = `status-badge ${reading.estado}`;
@@ -67,7 +89,7 @@ export function renderDetail() {
   Object.entries(reading.variables ?? {}).forEach(([name, variable]) => {
     const row = document.createElement("div");
     row.className = "variable-row";
-    row.innerHTML = `<span class="variable-label">${variable.etiqueta || name}</span><span class="variable-value">${formatValue(reading.id, name, variable.valor)} <small>${variable.unidad}</small></span>`;
+    row.innerHTML = `<span class="variable-label">${variable.etiqueta || name}</span><span class="variable-value">${formatValue(selectedId, name, variable.valor)} <small>${variable.unidad}</small></span>`;
     variables.append(row);
   });
   if (reading.anomalias?.length) {
