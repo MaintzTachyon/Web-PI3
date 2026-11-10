@@ -70,7 +70,6 @@ export function renderSensorList(onSelect) {
 export async function selectSensor(id, range = "1h") {
   selectedId = id;
   seleccionarMarcador(id);
-  renderSensorList(select);
   renderDetail();
   const reading = readings.get(id);
   if (!reading) return;

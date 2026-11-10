@@ -3,7 +3,7 @@
   grid-template-columns: 65% 35%;
   gap: 24px;
   margin-top: 6px;
-  align-items: start;
+  align-items: stretch;
   min-height: calc(100vh - 220px);
 }
 
@@ -75,6 +75,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
 }
 
 .monitor-heading {
@@ -85,9 +86,9 @@
 }
 
 .sensor-list {
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -114,7 +115,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 220px;
+  min-height: 0;
 }
 
 .detail-empty {
@@ -122,7 +123,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 200px;
+  min-height: 140px;
   text-align: center;
   color: var(--text-muted);
 }
