@@ -3,12 +3,13 @@ import { limpiarGrafico } from "./graficos.js";
 import { configurarPlano, actualizarMarcadores, seleccionarMarcador } from "./plano.js";
 import {
   lecturasSinDatos,
-  renderEstaciones,
+  renderSensorList,
   renderDetail,
   selectSensor,
   setCatalog,
   setReadings,
 } from "./sensores.js";
+
 const floorplan = document.querySelector("#floorplan");
 const connection = document.querySelector("#connection-status");
 
@@ -23,7 +24,7 @@ let cleanupStream;
 let refreshTimer;
 
 async function init() {
-  // Los marcadores se dibujan desde la configuración centralizada.
+  // Los marcadores se dibujan desde la configuración centralizada en sensores-config.js.
   configurarPlano(select, floorplan);
 
   document.querySelector("#clear-selection").addEventListener("click", clearSelection);
@@ -36,7 +37,6 @@ async function init() {
   try {
     catalog = await cargarCatalogo();
   } catch {
-    // Sin backend: datos de ejemplo, marcados como DEMO.
     activarDemo();
     await refresh();
     setConnection("offline", "Modo DEMO · API no disponible");
@@ -47,7 +47,6 @@ async function init() {
   try {
     await refresh();
   } catch {
-    // El backend responde pero InfluxDB no: se muestran los sensores sin datos, nunca datos inventados.
     pintar(lecturasSinDatos());
     setConnection("offline", "InfluxDB no disponible");
   }
@@ -65,7 +64,7 @@ async function refresh() {
 
 function pintar(lecturas) {
   setReadings(lecturas);
-  renderEstaciones(select);
+  renderSensorList(select);
   actualizarMarcadores(lecturas);
   if (selectedId) renderDetail();
 }
@@ -104,7 +103,7 @@ function select(id) {
   selectedId = id;
   seleccionarMarcador(id);
   selectSensor(id, document.querySelector("#history-range").value);
-  renderEstaciones(select);
+  renderSensorList(select);
 }
 
 function clearSelection() {
@@ -112,7 +111,7 @@ function clearSelection() {
   document.querySelector("#detail-empty").hidden = false;
   document.querySelector("#sensor-detail").hidden = true;
   document.querySelectorAll(".sensor-marker").forEach((marker) => marker.classList.remove("selected"));
-  document.querySelectorAll(".sensor-estacion").forEach((estacion) => estacion.classList.remove("selected"));
+  document.querySelectorAll(".sensor-item").forEach((item) => item.classList.remove("selected"));
   limpiarGrafico();
 }
 

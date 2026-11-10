@@ -1,68 +1,80 @@
-/* Estructura del aula (plano blueprint) */
-.room { fill: #162130; stroke: #47627b; stroke-width: 3; }
-.board { fill: #24455a; stroke: #6a9ab8; stroke-width: 2; }
+/* --- Estructura del salón (SVG original, preservada) --- */
+.room { fill: #121a2b; stroke: #3a4c5f; stroke-width: 3; }
+.board { fill: #223346; stroke: #5a7a9a; stroke-width: 2; }
 .room-label,
-.fixture-label { fill: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
-.door { fill: #ca9b64; }
-.window { fill: #4b8aa3; stroke: #8ed3df; stroke-width: 2; }
-.window path { stroke: #8ed3df; }
-.table rect { fill: #24394b; stroke: #456177; stroke-width: 2; }
-.table circle { fill: #172936; stroke: #55748a; stroke-width: 2; }
+.fixture-label { fill: #7a8fa0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+.door { fill: #b08d5c; }
+.window { fill: #3c6e8a; stroke: #7fbcd6; stroke-width: 2; }
+.window path { stroke: #7fbcd6; }
+.table rect { fill: #1f2d3e; stroke: #3d546a; stroke-width: 2; }
+.table circle { fill: #131d28; stroke: #3d546a; stroke-width: 2; }
 
-/* Marcadores de sensor inyectados dinámicamente */
+/* --- Indicadores de sensores inyectados dinámicamente --- */
+#sensores-marcadores {
+  /* contenedor de los marcadores SVG */
+}
+
 .sensor-marker {
   cursor: pointer;
   outline: none;
-  transition: transform 0.15s ease;
+  transition: transform 0.12s ease;
 }
 .sensor-marker:focus-visible {
-  outline: 2px solid var(--linea-plano);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.marker-halo {
-  fill: #60a5fa1a;
-  stroke: #60a5fa80;
+.marker-ring {
+  fill: none;
+  stroke: #3b82f6;
   stroke-width: 2;
-  transition: fill 0.2s, stroke 0.2s, r 0.2s;
+  stroke-opacity: 0.35;
+  transition: stroke-opacity 0.2s, r 0.2s;
 }
 .marker-core {
-  fill: var(--linea-plano);
-  stroke: #d8fffa;
-  stroke-width: 2;
+  fill: #3b82f6;
+  stroke: #e2e8f0;
+  stroke-width: 1.5;
   transition: fill 0.2s;
 }
 
-.sensor-marker text {
-  fill: #07151a;
+.sensor-marker text.symbol {
+  fill: #0b1120;
   font-size: 9px;
   font-weight: 900;
-  font-family: var(--fuente-datos);
-}
-.marker-label {
-  fill: var(--grafito);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-data);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
 }
 
-/* Estados de marcador: color codifica el estado, no el brillo */
-.sensor-marker[data-state="normal"] .marker-core { fill: var(--tiza-verde); }
-.sensor-marker[data-state="alerta"] .marker-core { fill: var(--ocre); }
-.sensor-marker[data-state="critico"] .marker-core { fill: var(--terracota); }
-.sensor-marker[data-state="falla"] .marker-core { fill: var(--terracota); }
-.sensor-marker[data-state="calibrando"] .marker-core { fill: var(--ocre); }
-.sensor-marker[data-state="calentando"] .marker-core { fill: var(--ocre); }
-.sensor-marker[data-state="sin_datos"] .marker-core { fill: var(--plomo); }
+/* Etiqueta del sensor debajo del indicador (opcional, discreta) */
+.sensor-label {
+  fill: var(--text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  pointer-events: none;
+}
 
-.sensor-marker:hover .marker-halo,
-.sensor-marker.selected .marker-halo {
-  fill: #60a5fa55;
-  stroke: #93c5fd;
-  stroke-width: 3;
+/* Estados — el color comunica el estado, sin brillo ni neón */
+.sensor-marker[data-state="normal"] .marker-core { fill: var(--ok); }
+.sensor-marker[data-state="alerta"] .marker-core { fill: var(--warn); }
+.sensor-marker[data-state="calentando"] .marker-core { fill: var(--warn); }
+.sensor-marker[data-state="calibrando"] .marker-core { fill: var(--warn); }
+.sensor-marker[data-state="critico"] .marker-core { fill: var(--crit); }
+.sensor-marker[data-state="falla"] .marker-core { fill: var(--fault); }
+.sensor-marker[data-state="sin_datos"] .marker-core { fill: var(--nodata); }
+
+.sensor-marker:hover .marker-ring,
+.sensor-marker.selected .marker-ring {
+  stroke-opacity: 0.6;
 }
 .sensor-marker.selected .marker-core {
   fill: #93c5fd;
+  stroke: #e2e8f0;
 }
-.sensor-marker.selected .marker-label {
-  fill: var(--tiza);
+.sensor-marker.selected .sensor-label {
+  fill: var(--text);
 }

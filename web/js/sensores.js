@@ -11,7 +11,6 @@ export function setReadings(items) { items.forEach((item) => readings.set(item.i
 export function getReading(id) { return readings.get(id); }
 export function getSelectedId() { return selectedId; }
 
-// Lecturas vacías a partir del catálogo, para cuando la API responde pero InfluxDB no.
 export function lecturasSinDatos() {
   return [...catalog.values()].map((sensor) => ({
     id: sensor.id, nodo: sensor.nodo, tipo: sensor.medicion ?? sensor.tipo, etiqueta: sensor.etiqueta,
@@ -22,44 +21,56 @@ export function lecturasSinDatos() {
 }
 
 /**
- * Renderiza una "estación" por sensor (fila debajo del plano), no tarjetas clonadas.
- * Solo el sensor seleccionado se resalta visualmente.
+ * Renderiza una fila por sensor en el panel de monitorización.
+ * No son tarjetas clonadas: filas compactas con jerarquía visual clara.
+ * Solo el sensor seleccionado se destaca visualmente.
  */
-export function renderEstaciones(onSelect) {
-  const container = document.querySelector("#sensor-estaciones");
+export function renderSensorList(onSelect) {
+  const container = document.querySelector("#sensor-list");
   container.replaceChildren();
+
+  if (readings.size === 0) {
+    container.insertAdjacentHTML("beforeend", `<div class="sensor-list-empty">Sin sensores disponibles</div>`);
+    return;
+  }
+
   readings.forEach((reading) => {
-    const estacion = document.createElement("article");
-    estacion.className = `sensor-estacion${reading.id === selectedId ? " selected" : ""}`;
-    estacion.tabIndex = 0;
-    estacion.setAttribute("aria-label", `${reading.etiqueta}: ${formatValue(reading.id, principal(reading), reading.valor)} ${reading.unidad}, estado ${reading.estado.replace("_", " ")}`);
+    const item = document.createElement("article");
+    item.className = `sensor-item${reading.id === selectedId ? " selected" : ""}`;
+    item.tabIndex = 0;
+    item.setAttribute("aria-label", `${reading.etiqueta}: ${formatValue(reading.id, principal(reading), reading.valor)} ${reading.unidad}, ${reading.estado.replace("_", " ")}`);
 
     const valor = formatValue(reading.id, principal(reading), reading.valor);
-    estacion.innerHTML = `
-      <div class="sensor-estacion-header">
-        <span class="sensor-estacion-tipo">${reading.tipo}</span>
-        <span class="sensor-estacion-estado status-badge ${reading.estado}">${reading.estado.replace("_", " ")}</span>
+    const estadoLabel = reading.estado.replace("_", " ");
+    const updated = formatTime(reading.actualizado);
+
+    item.innerHTML = `
+      <div class="sensor-item-main">
+        <span class="sensor-indicator ${reading.estado}" aria-hidden="true"></span>
+        <div class="sensor-info">
+          <div class="sensor-name">${reading.etiqueta}</div>
+          <div class="sensor-meta">${reading.tipo} · nodo ${reading.nodo}</div>
+        </div>
       </div>
-      <div class="sensor-estacion-lectura">
-        <strong class="sensor-estacion-valor">${valor}</strong>
-        <span class="sensor-estacion-unidad">${reading.unidad}</span>
+      <div class="sensor-reading">
+        <span class="sensor-value">${valor}</span>
+        <span class="sensor-unit">${reading.unidad}</span>
       </div>
-      <div class="sensor-estacion-footer">
-        <span>${reading.etiqueta}</span>
-        <span>${formatTime(reading.actualizado)}</span>
-      </div>
+      <span class="sensor-updated">${updated}</span>
     `;
-    estacion.addEventListener("click", () => onSelect(reading.id));
-    estacion.addEventListener("keydown", (event) => {
+
+    item.addEventListener("click", () => onSelect(reading.id));
+    item.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") onSelect(reading.id);
     });
-    container.append(estacion);
+    container.append(item);
   });
 }
 
 export async function selectSensor(id, range = "1h") {
   selectedId = id;
   seleccionarMarcador(id);
+  renderSensorList(select);
   renderDetail();
   const reading = readings.get(id);
   if (!reading) return;

@@ -5,56 +5,64 @@
 :root {
   color-scheme: dark;
 
-  /* Paleta blueprint / pizarra del aula */
-  --pizarra: #0b1420;      /* fondo base: pizarra profunda, no negro puro */
-  --panel: #162130;        /* superficie de paneles y detalle */
-  --panel-light: #1e2a3a;  /* superficie ligeramente más clara */
-  --plano: #162130;        /* fondo del área del plano SVG */
-  --border: #2d4259;       /* bordes sutiles */
-  --tiza: #e2e8f0;         /* texto principal (blanco tiza) */
-  --grafito: #94a3b8;      /* texto secundario */
-  --tiza-atenuada: #64748b; /* texto atenuado */
+  /* Paleta técnica BMS / SCADA — sobria, sin gradientes decorativos */
+  --bg: #0b1120;             /* fondo base: tinta profunda */
+  --surface: #131928;        /* superficie principal */
+  --surface-hover: #1c2536;  /* superficie activa / hover */
+  --border: #263240;         /* bordes sutiles */
+  --border-focus: #3b82f6;   /* borde de foco (acento industrial) */
 
-  /* Colores de estado (luces de aula, no neón) */
-  --linea-plano: #60a5fa;      /* azul plano: estado normal de sensores */
-  --tiza-verde: #86efac;       /* verde tiza: normal */
-  --ocre: #fbbf24;             /* ámbar: alerta */
-  --terracota: #ef4444;        /* terracota: crítico */
-  --plomo: #64748b;            /* plomo: sin datos / falla */
+  --text: #e8eef5;           /* texto principal */
+  --text-muted: #8a97a8;     /* texto secundario */
+  --text-faint: #5b6a7c;     /* texto atenuado */
 
-  --sombra: 0 20px 60px #00000033;
+  /* Acento industrial azul — usado con moderación */
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+
+  /* Estados de sensor — reconocibles, sin saturación excesiva */
+  --ok: #10b981;             /* Normal */
+  --warn: #f59e0b;           /* Alerta */
+  --crit: #ef4444;           /* Crítico */
+  --fault: #dc2626;          /* Fallo */
+  --nodata: #64748b;         /* Sin datos */
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 
   /* Tipografía: dos familias, claramente distintas */
-  --fuente-ui: "Source Sans 3", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --fuente-datos: "Source Code Variable", ui-monospace, Menlo, monospace;
+  --font-ui: "Source Sans 3", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-data: "Source Code Variable", ui-monospace, Menlo, Consolas,
+    monospace;
 }
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
-  background: var(--pizarra);
-  color: var(--tiza);
-  font-family: var(--fuente-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
   min-width: 320px;
+  line-height: 1.5;
 }
 
 body {
-  background:
-    radial-gradient(circle at 80% -10%, #1b3853 0, transparent 40%),
-    var(--pizarra);
+  font-size: 0.9rem;
 }
 
-button, select {
+button, select, input {
   font: inherit;
-  font-family: var(--fuente-ui);
+  font-family: var(--font-ui);
 }
 
 .app-shell {
-  width: min(1400px, calc(100% - 40px));
+  width: min(1600px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 28px 0 24px;
+  padding: 24px 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .topbar,
@@ -65,113 +73,114 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
 }
 
 .topbar {
-  padding: 12px 0 26px;
+  padding: 0 0 20px;
   border-bottom: 1px solid var(--border);
 }
 
 h1, h2, h3, p { margin: 0; }
 
 h1 {
-  font-size: clamp(1.5rem, 3vw, 2.4rem);
-  letter-spacing: -0.03em;
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  letter-spacing: -0.02em;
   font-weight: 700;
 }
-h1 span { color: var(--grafito); font-weight: 400; }
+h1 span { color: var(--text-muted); font-weight: 400; }
 
 h2 {
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
   font-weight: 600;
 }
 
-h3 { font-size: 1rem; font-weight: 600; }
+h3 { font-size: 0.95rem; font-weight: 600; }
 
 .eyebrow {
-  color: var(--linea-plano);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   margin-bottom: 6px;
-  /* sin mayúsculas rastreadas: jerarquía por tamaño y peso */
+  text-transform: uppercase;
+  /* Usado solo en encabezados de sección, no en cada etiqueta */
 }
 
-.muted, footer, .chart-message { color: var(--grafito); }
+.muted, footer, .chart-message { color: var(--text-muted); }
 
 .panel {
-  background: linear-gradient(145deg, #1c293d, #141e2b);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--sombra);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
 }
 
 .connection {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--grafito);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
 .connection-dot,
-.live-pill span {
-  width: 8px;
-  height: 8px;
+.live-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--grafito);
-  box-shadow: 0 0 0 4px #94a3b81c;
+  background: var(--text-muted);
+  box-shadow: 0 0 0 4px rgba(138, 151, 168, 0.15);
 }
 
 .connection[data-state="online"] .connection-dot {
-  background: var(--tiza-verde);
-  box-shadow: 0 0 0 4px #86efac26;
+  background: var(--ok);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 .connection[data-state="partial"] .connection-dot {
-  background: var(--ocre);
+  background: var(--warn);
 }
 .connection[data-state="offline"] .connection-dot {
-  background: var(--terracota);
+  background: var(--crit);
 }
 
 .demo-badge,
 .status-badge,
 .live-pill {
-  border-radius: 999px;
-  font-size: 0.65rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 5px 9px;
+  padding: 4px 8px;
 }
 
 .demo-badge {
-  background: #d78c3330;
-  color: var(--ocre);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warn);
 }
 
 .live-pill {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: var(--tiza-verde);
+  color: var(--ok);
 }
-.live-pill span {
-  width: 6px;
-  height: 6px;
-  background: var(--tiza-verde);
+.live-pill .live-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ok);
   box-shadow: none;
 }
 
 footer {
   border-top: 1px solid var(--border);
   font-size: 0.75rem;
-  margin-top: 22px;
-  padding: 18px 2px 0;
-  color: var(--grafito);
+  margin-top: auto;
+  padding: 16px 0 0;
+  color: var(--text-muted);
 }
 footer strong {
-  color: var(--tiza);
+  color: var(--text);
   font-weight: 500;
 }

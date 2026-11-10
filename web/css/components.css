@@ -1,187 +1,111 @@
-/* Estación de sensor: una por sensor, no tarjetas clonadas idénticas */
-.sensor-estacion {
-  background: #1c293d;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.sensor-estacion:hover {
-  background: #23344a;
-  border-color: #60a5fa66;
-}
-.sensor-estacion.selected {
-  background: #263850;
-  border-color: var(--linea-plano);
-  box-shadow: 0 0 0 1px var(--linea-plano);
-}
-
-.sensor-estacion-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-.sensor-estacion-tipo {
-  color: var(--grafito);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-.sensor-estacion-estado {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.sensor-estacion-lectura {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
-}
-.sensor-estacion-valor {
-  font-family: var(--fuente-datos);
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  color: var(--tiza);
-}
-.sensor-estacion-unidad {
-  color: var(--grafito);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.sensor-estacion-footer {
+/* --- Estación de sensor: fila compacta en el panel de monitorización --- */
+.sensor-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.7rem;
-  color: var(--tiza-atenuada);
-  margin-top: auto;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border: 1px solid transparent;
+  background: transparent;
+}
+.sensor-item:hover {
+  background: var(--surface-hover);
+}
+.sensor-item.selected {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+.sensor-item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
 }
 
-/* Badges de estado: sin mayúsculas forzadas, color codifica el estado */
-.status-badge {
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 5px 9px;
+.sensor-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
+
+.sensor-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--nodata);
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+  flex-shrink: 0;
+}
+.sensor-indicator.normal { background: var(--ok); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25); }
+.sensor-indicator.alerta { background: var(--warn); box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
+.sensor-indicator.critico { background: var(--crit); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+.sensor-indicator.falla { background: var(--fault); box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25); }
+.sensor-indicator.sin_datos { background: var(--nodata); box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25); }
+.sensor-indicator.calibrando { background: var(--warn); }
+.sensor-indicator.calentando { background: var(--warn); }
+
+.sensor-info {
+  min-width: 0;
+}
+.sensor-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sensor-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sensor-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 110px;
+}
+.sensor-value {
+  font-family: var(--font-data);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.sensor-unit {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sensor-updated {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Badges de estado (sin mayúsculas forzadas, sin texto decorativo) */
 .status-badge.normal {
-  color: var(--tiza-verde);
-  background: #86efac1c;
+  color: var(--ok);
+  background: rgba(16, 185, 129, 0.1);
 }
 .status-badge.alerta,
 .status-badge.calibrando {
-  color: var(--ocre);
-  background: #fbbf241c;
+  color: var(--warn);
+  background: rgba(245, 158, 11, 0.1);
 }
 .status-badge.critico,
 .status-badge.falla {
-  color: var(--terracota);
-  background: #ef44441c;
+  color: var(--crit);
+  background: rgba(239, 68, 68, 0.1);
 }
 .status-badge.sin_datos {
-  color: var(--plomo);
-  background: #64748b1c;
-}
-
-.detail-empty {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 200px;
-  text-align: center;
-}
-.detail-empty h2 { margin: 12px 0 8px; }
-.detail-empty p { color: var(--grafito); font-size: 0.85rem; }
-.detail-icon { color: var(--linea-plano); font-size: 2.25rem; }
-
-.ghost-button {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  color: var(--grafito);
-  cursor: pointer;
-  font-size: 0.75rem;
-  padding: 8px 12px;
-}
-.ghost-button:hover {
-  border-color: var(--linea-plano);
-  color: var(--tiza);
-}
-
-.detail-measure {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-start;
-}
-.detail-measure .status-badge { align-self: center; margin-left: 6px; }
-
-.detail-value {
-  font-family: var(--fuente-datos);
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  color: var(--tiza);
-}
-.detail-unit {
-  color: var(--grafito);
-  font-size: 1rem;
-  font-weight: 500;
-  align-self: center;
-}
-
-.variables-grid {
-  border-left: 1px solid var(--border);
-  padding-left: 20px;
-}
-.variable-row {
-  border-bottom: 1px solid #2d425980;
-  padding: 10px 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-.variable-row:first-child { padding-top: 0; }
-.variable-label {
-  color: var(--grafito);
-  font-size: 0.75rem;
-}
-.variable-value {
-  font-family: var(--fuente-datos);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--tiza);
-}
-.variable-value small {
-  color: var(--grafito);
-  font-weight: 400;
-  margin-left: 4px;
-}
-
-.chart-heading label {
-  color: var(--grafito);
-  font-size: 0.75rem;
-}
-select {
-  background: var(--panel-light);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  color: var(--tiza);
-  margin-left: 6px;
-  padding: 6px 8px;
-  font-size: 0.8rem;
+  color: var(--nodata);
+  background: rgba(100, 116, 139, 0.1);
 }

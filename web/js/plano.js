@@ -1,21 +1,21 @@
 import {
   SENSORES_CONFIG,
-  obtenerUbicaciones,
 } from "./sensores-config.js";
 
 /**
- * Crea los marcadores de sensores dentro del SVG a partir de la configuración
- * centralizada. Las ubicaciones (x, y) viven en js/sensores-config.js: mover un
- * sensor es editar una coordenada ahí, no tocar este archivo ni el SVG.
+ * Crea los marcadores de sensores dentro del plano SVG a partir de la
+ * configuración centralizada (js/sensores-config.js).
+ *
+ * Mover un sensor de ubicación es editar sus coordenadas (x, y) en ese archivo.
+ * No hay que tocar este archivo ni el SVG.
  *
  * @param {Function} onSelect - callback(id) al seleccionar un marcador
- * @param {HTMLElement} contenedorSVG - elemento <svg> del plano
+ * @param {SVGElement} svg - elemento <svg> del plano
  */
-export function configurarPlano(onSelect, contenedorSVG) {
-  const grupo = contenedorSVG.querySelector("#marcadores-sensores");
+export function configurarPlano(onSelect, svg) {
+  const grupo = svg.querySelector("#sensores-marcadores");
   if (!grupo) return;
 
-  // Limpiar marcadores previos (por si se vuelve a renderizar)
   grupo.replaceChildren();
 
   SENSORES_CONFIG.forEach((sensor) => {
@@ -26,51 +26,40 @@ export function configurarPlano(onSelect, contenedorSVG) {
     g.setAttribute("role", "button");
     g.setAttribute(
       "aria-label",
-      `${sensor.etiqueta} sensor (${sensor.tipo})`
+      `${sensor.etiqueta} — sensor de ${sensor.tipo}`
     );
 
-    // Halo exterior
-    const halo = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
-    halo.setAttribute("class", "marker-halo");
-    halo.setAttribute("cx", sensor.x);
-    halo.setAttribute("cy", sensor.y);
-    halo.setAttribute("r", "28");
+    // Anillo exterior (discreto)
+    const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    ring.setAttribute("class", "marker-ring");
+    ring.setAttribute("cx", sensor.x);
+    ring.setAttribute("cy", sensor.y);
+    ring.setAttribute("r", "20");
 
-    // Núcleo del marcador
-    const core = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
+    // Núcleo del marcador (color según estado)
+    const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     core.setAttribute("class", "marker-core");
     core.setAttribute("cx", sensor.x);
     core.setAttribute("cy", sensor.y);
-    core.setAttribute("r", "19");
+    core.setAttribute("r", "10");
 
     // Símbolo del sensor
-    const simbolo = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "text"
-    );
+    const simbolo = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    simbolo.setAttribute("class", "symbol");
     simbolo.setAttribute("x", sensor.x);
-    simbolo.setAttribute("y", sensor.y + 4);
+    simbolo.setAttribute("y", String(sensor.y + 3));
     simbolo.setAttribute("text-anchor", "middle");
     simbolo.textContent = simboloPara(sensor.tipo);
 
-    // Etiqueta debajo del marcador
-    const label = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "text"
-    );
-    label.setAttribute("class", "marker-label");
+    // Etiqueta discreta debajo
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("class", "sensor-label");
     label.setAttribute("x", sensor.x);
-    label.setAttribute("y", sensor.y + 42);
+    label.setAttribute("y", String(sensor.y + 22));
     label.setAttribute("text-anchor", "middle");
     label.textContent = sensor.etiqueta;
 
-    g.append(halo, core, simbolo, label);
+    g.append(ring, core, simbolo, label);
     grupo.append(g);
 
     g.addEventListener("click", () => onSelect(sensor.id));
@@ -90,7 +79,7 @@ function simboloPara(tipo) {
     temperatura: "°C",
     humedad: "%",
     luminosidad: "lx",
-    presencia: "↻",
+    presencia: "⌁",
   };
   return simbolos[tipo] || "?";
 }

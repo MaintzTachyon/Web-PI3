@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Gemelo digital del aula L419" />
+    <meta name="description" content="Gemelo digital del aula L419 — Monitorización ambiental" />
     <title>Gemelo Digital — Aula L419</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Gemelo digital del aula</p>
-          <h1>L419 <span>— Monitoreo ambiental</span></h1>
+          <h1>L419 <span>— Monitorización ambiental</span></h1>
         </div>
         <div class="connection" id="connection-status" data-state="loading">
           <span class="connection-dot" aria-hidden="true"></span>
@@ -26,18 +26,18 @@
         </div>
       </header>
 
-      <main>
-        <!-- Héroe: el plano del aula es la interfaz principal -->
-        <section class="hero" aria-label="Plano del aula L419">
-          <div class="panel floorplan-panel">
-            <div class="panel-heading">
+      <div class="workspace">
+        <!-- A. Área del plano del salón (65%) -->
+        <section class="plano-area" aria-label="Plano del salón L419">
+          <div class="plano-panel">
+            <div class="plano-heading">
               <div>
                 <p class="eyebrow">Plano del aula</p>
-                <h2>Aula L419</h2>
+                <h2>L419</h2>
               </div>
               <span class="demo-badge" id="origin-badge" hidden>DEMO</span>
             </div>
-            <div class="floorplan-wrap">
+            <div class="plano-wrap">
               <svg
                 id="floorplan"
                 class="floorplan"
@@ -45,7 +45,7 @@
                 role="img"
                 aria-label="Plano esquemático del aula L419 con sensores"
               >
-                <!-- Estructura del aula (estática) -->
+                <!-- Estructura del salón (SVG original preservada) -->
                 <rect class="room" x="30" y="30" width="840" height="500" rx="14" />
                 <rect class="board" x="330" y="45" width="240" height="30" rx="5" />
                 <text class="room-label" x="450" y="66" text-anchor="middle">PIZARRA</text>
@@ -78,51 +78,50 @@
                 </g>
                 <text class="fixture-label" x="450" y="490" text-anchor="middle">MESAS DE TRABAJO</text>
 
-                <!-- Los marcadores de sensores se inyectan dinámicamente desde js/sensores-config.js -->
-                <g id="marcadores-sensores"></g>
+                <!-- Marcadores de sensores inyectados dinámicamente desde js/sensores-config.js -->
+                <g id="sensores-marcadores"></g>
               </svg>
             </div>
             <div class="legend">
               <span><i class="legend-dot normal"></i>Normal</span>
               <span><i class="legend-dot alerta"></i>Alerta</span>
               <span><i class="legend-dot critico"></i>Crítico</span>
+              <span><i class="legend-dot falla"></i>Fallo</span>
               <span><i class="legend-dot sin_datos"></i>Sin datos</span>
-              <span><i class="legend-dot falla"></i>Falla</span>
             </div>
           </div>
         </section>
 
-        <!-- Lecturas de sensores: estación de cada sensor, no tarjetas clonadas -->
-        <section class="lecturas" aria-label="Lecturas actuales de los sensores">
-          <div class="lecturas-heading">
+        <!-- B. Panel de monitorización (35%) -->
+        <aside class="monitor-panel" aria-label="Panel de monitorización">
+          <div class="monitor-heading">
             <div>
-              <p class="eyebrow">Estado de los sensores</p>
-              <h2>Lecturas actuales</h2>
+              <p class="eyebrow">Sensores</p>
+              <h2>Monitor en tiempo real</h2>
             </div>
-            <span class="live-pill"><span></span> En vivo</span>
+            <span class="live-pill"><span class="live-dot" aria-hidden="true"></span> En vivo</span>
           </div>
-          <div id="sensor-estaciones" class="sensor-estaciones">
-            <div class="loading-state">Cargando sensores…</div>
-          </div>
-        </section>
 
-        <!-- Detalle del sensor seleccionado + historial -->
-        <section class="panel detail-panel" id="detail-panel" aria-live="polite">
-          <div class="detail-empty" id="detail-empty">
-            <span class="detail-icon">⌖</span>
-            <h2>Selecciona un sensor</h2>
-            <p>Haz clic en un marcador del plano para ver sus variables e historial.</p>
+          <div id="sensor-list" class="sensor-list">
+            <div class="sensor-list-empty">Cargando sensores…</div>
           </div>
-          <div id="sensor-detail" hidden>
-            <div class="detail-header">
-              <div>
-                <p class="eyebrow">Detalle del sensor</p>
-                <h2 id="detail-title">—</h2>
-                <p id="detail-meta" class="muted">—</p>
-              </div>
-              <button class="ghost-button" id="clear-selection" type="button">Cerrar detalle</button>
+
+          <!-- Detalle del sensor seleccionado -->
+          <section class="detail-panel" id="detail-panel" aria-live="polite">
+            <div class="detail-empty" id="detail-empty">
+              <span class="detail-icon">⌖</span>
+              <h2>Selecciona un sensor</h2>
+              <p>Haz clic en un indicador del plano o en la lista para ver su detalle.</p>
             </div>
-            <div class="detail-content">
+            <div id="sensor-detail" hidden>
+              <div class="detail-header">
+                <div class="detail-header-left">
+                  <p class="eyebrow">Detalle del sensor</p>
+                  <h2 id="detail-title">—</h2>
+                  <p id="detail-meta" class="muted">—</p>
+                </div>
+                <button class="ghost-button" id="clear-selection" type="button">Cerrar</button>
+              </div>
               <div class="detail-measure">
                 <span class="detail-value" id="detail-value">—</span>
                 <span class="detail-unit" id="detail-unit">—</span>
@@ -133,13 +132,13 @@
                 <div class="chart-heading">
                   <h3>Historial</h3>
                   <label>
-                    Rango
+                    Intervalo de tiempo
                     <select id="history-range">
-                      <option value="15m">15 min</option>
-                      <option value="1h" selected>1 hora</option>
-                      <option value="6h">6 horas</option>
+                      <option value="15m" selected>15 min</option>
+                      <option value="30m">30 min</option>
+                      <option value="1h">1 hora</option>
+                      <option value="4h">4 horas</option>
                       <option value="24h">24 horas</option>
-                      <option value="7d">7 días</option>
                     </select>
                   </label>
                 </div>
@@ -147,9 +146,9 @@
                 <p class="chart-message" id="chart-message">Selecciona un sensor para cargar el historial.</p>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </aside>
+      </div>
 
       <footer>
         <span>Fuente: InfluxDB mediante API segura</span>
