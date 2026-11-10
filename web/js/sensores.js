@@ -1,15 +1,34 @@
 import { cargarHistorial } from "./datos.js";
-import { actualizarGrafico } from "./graficos.js";
+import { actualizarGrafico, limpiarGrafico } from "./graficos.js";
 import { seleccionarMarcador } from "./plano.js";
+import { SENSORES_CONFIG, obtenerConfiguracion } from "./sensores-config.js";
 
 let readings = new Map();
 let selectedId;
 let catalog = new Map();
 
 export function setCatalog(items) { catalog = new Map(items.map((item) => [item.id, item])); }
-export function setReadings(items) { items.forEach((item) => readings.set(item.id, item)); }
+export function setReadings(items) {
+  // Una lectura real reemplaza al marcador de "pendiente" y conserva su lugar en la lista.
+  items.forEach((item) => readings.set(item.id, item));
+}
 export function getReading(id) { return readings.get(id); }
 export function getSelectedId() { return selectedId; }
+export function limpiarSeleccion() { selectedId = undefined; }
+
+// Sensores dibujados en el plano que aún no envían datos (no están en la API):
+// aparecen como "sin datos" en vez de quedar sin estado y sin detalle.
+export function completarPendientes() {
+  SENSORES_CONFIG.filter((sensor) => !readings.has(sensor.id)).forEach((sensor) => {
+    readings.set(sensor.id, {
+      id: sensor.id, nodo: null, tipo: sensor.tipo, etiqueta: sensor.etiqueta,
+      valor: null, unidad: sensor.unidad, estado: "sin_datos", actualizado: null,
+      variables: { [sensor.variable_principal]: { valor: null, unidad: sensor.unidad, etiqueta: sensor.etiqueta } },
+      anomalias: [], diagnostico: {}, pendiente: true,
+    });
+  });
+  return [...readings.values()].filter((reading) => reading.pendiente);
+}
 
 export function lecturasSinDatos() {
   return [...catalog.values()].map((sensor) => ({
@@ -49,7 +68,7 @@ export function renderSensorList(onSelect) {
         <span class="sensor-indicator ${reading.estado}" aria-hidden="true"></span>
         <div class="sensor-info">
           <div class="sensor-name">${reading.etiqueta}</div>
-          <div class="sensor-meta">${reading.tipo} · nodo ${reading.nodo}</div>
+          <div class="sensor-meta">${reading.tipo} · ${reading.pendiente ? "sin conectar" : `nodo ${reading.nodo}`}</div>
         </div>
       </div>
       <div class="sensor-reading">
@@ -74,6 +93,11 @@ export async function selectSensor(id, range = "1h") {
   const reading = readings.get(id);
   if (!reading) return;
   const message = document.querySelector("#chart-message");
+  if (reading.pendiente) {
+    limpiarGrafico();
+    message.textContent = "Este sensor aún no está conectado: no hay historial.";
+    return;
+  }
   message.textContent = "Cargando historial…";
   try {
     const history = await cargarHistorial(id, principal(reading), range);
@@ -88,7 +112,9 @@ export function renderDetail() {
   document.querySelector("#detail-empty").hidden = true;
   document.querySelector("#sensor-detail").hidden = false;
   document.querySelector("#detail-title").textContent = reading.etiqueta;
-  document.querySelector("#detail-meta").textContent = `Nodo ${reading.nodo} · Actualizado ${formatTime(reading.actualizado)}`;
+  document.querySelector("#detail-meta").textContent = reading.pendiente
+    ? "Sensor aún no conectado al sistema"
+    : `Nodo ${reading.nodo} · Actualizado ${formatTime(reading.actualizado)}`;
   document.querySelector("#detail-value").textContent = formatValue(selectedId, principal(reading), reading.valor);
   document.querySelector("#detail-unit").textContent = reading.unidad;
   const status = document.querySelector("#detail-status");
@@ -122,7 +148,11 @@ function principal(reading) {
 
 function formatValue(id, variable, value) {
   if (typeof value !== "number") return value ?? "—";
-  const decimales = catalog.get(id)?.variables?.[variable]?.decimales ?? 1;
+  // Catálogo de la API → datos DEMO → configuración del plano.
+  const decimales = catalog.get(id)?.variables?.[variable]?.decimales
+    ?? readings.get(id)?.variables?.[variable]?.decimales
+    ?? obtenerConfiguracion(id)?.decimales
+    ?? 1;
   return value.toLocaleString("es-PE", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
 }
 

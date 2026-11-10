@@ -2,7 +2,9 @@ import { activarDemo, cargarCatalogo, cargarUltimas, desactivarDemo, suscribirSt
 import { limpiarGrafico } from "./graficos.js";
 import { configurarPlano, actualizarMarcadores, seleccionarMarcador } from "./plano.js";
 import {
+  completarPendientes,
   lecturasSinDatos,
+  limpiarSeleccion,
   renderSensorList,
   renderDetail,
   selectSensor,
@@ -64,8 +66,9 @@ async function refresh() {
 
 function pintar(lecturas) {
   setReadings(lecturas);
+  const pendientes = completarPendientes();
   renderSensorList(select);
-  actualizarMarcadores(lecturas);
+  actualizarMarcadores([...lecturas, ...pendientes]);
   if (selectedId) renderDetail();
 }
 
@@ -108,6 +111,7 @@ function select(id) {
 
 function clearSelection() {
   selectedId = undefined;
+  limpiarSeleccion();
   document.querySelector("#detail-empty").hidden = false;
   document.querySelector("#sensor-detail").hidden = true;
   document.querySelectorAll(".sensor-marker").forEach((marker) => marker.classList.remove("selected"));

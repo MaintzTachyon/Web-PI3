@@ -96,7 +96,8 @@
   background: rgba(16, 185, 129, 0.1);
 }
 .status-badge.alerta,
-.status-badge.calibrando {
+.status-badge.calibrando,
+.status-badge.calentando {
   color: var(--warn);
   background: rgba(245, 158, 11, 0.1);
 }

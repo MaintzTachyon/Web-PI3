@@ -1,6 +1,7 @@
 .workspace {
   display: grid;
-  grid-template-columns: 65% 35%;
+  /* fr en vez de %: 65% + 35% + gap desbordaba el contenedor */
+  grid-template-columns: minmax(0, 65fr) minmax(0, 35fr);
   gap: 24px;
   margin-top: 6px;
   align-items: stretch;
@@ -80,9 +81,6 @@
 
 .monitor-heading {
   flex-shrink: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
 }
 
 .sensor-list {

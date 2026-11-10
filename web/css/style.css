@@ -32,11 +32,14 @@
   /* Tipografía: dos familias, claramente distintas */
   --font-ui: "Source Sans 3", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-data: "Source Code Variable", ui-monospace, Menlo, Consolas,
+  --font-data: "Source Code Pro", ui-monospace, Menlo, Consolas,
     monospace;
 }
 
 * { box-sizing: border-box; }
+
+/* Sin esto, reglas como .detail-empty { display: flex } anulan el atributo hidden */
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -67,6 +70,8 @@ button, select, input {
 
 .topbar,
 .panel-heading,
+.plano-heading,
+.monitor-heading,
 .detail-header,
 .chart-heading,
 footer {

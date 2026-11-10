@@ -22,6 +22,7 @@ export function configurarPlano(onSelect, svg) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", "sensor-marker");
     g.setAttribute("data-sensor-id", sensor.id);
+    g.dataset.state = "sin_datos";
     g.setAttribute("tabindex", "0");
     g.setAttribute("role", "button");
     g.setAttribute(
@@ -47,7 +48,8 @@ export function configurarPlano(onSelect, svg) {
     const simbolo = document.createElementNS("http://www.w3.org/2000/svg", "text");
     simbolo.setAttribute("class", "symbol");
     simbolo.setAttribute("x", sensor.x);
-    simbolo.setAttribute("y", String(sensor.y + 3));
+    // El CSS ya centra con dominant-baseline: middle.
+    simbolo.setAttribute("y", sensor.y);
     simbolo.setAttribute("text-anchor", "middle");
     simbolo.textContent = simboloPara(sensor.tipo);
 
@@ -55,7 +57,8 @@ export function configurarPlano(onSelect, svg) {
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("class", "sensor-label");
     label.setAttribute("x", sensor.x);
-    label.setAttribute("y", String(sensor.y + 22));
+    // Debajo del anillo (r = 20) para que no se superpongan.
+    label.setAttribute("y", String(sensor.y + 34));
     label.setAttribute("text-anchor", "middle");
     label.textContent = sensor.etiqueta;
 
@@ -99,7 +102,7 @@ export function actualizarMarcadores(readings) {
     marker.dataset.state = reading.estado;
     marker.setAttribute(
       "aria-label",
-      `${reading.etiqueta}: ${reading.valor ?? "sin datos"} ${reading.unidad}`
+      `${reading.etiqueta}: ${typeof reading.valor === "number" ? reading.valor.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "sin datos"} ${reading.unidad}`
     );
   });
 }
