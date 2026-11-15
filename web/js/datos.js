@@ -2,7 +2,7 @@ import { sensoresDemo } from "../data/sensores-demo.js";
 
 // Servido por el backend (puerto 8000 o producción) → mismo origen.
 // Servido aparte con Live Server / http.server (puerto 5500) → API en 127.0.0.1:8000.
-const DEV_PORTS = ["5500", "5501"];
+const DEV_PORTS = ["5500", "5501", "5502"];
 export const API_BASE = window.GEMELO_API_BASE ?? (DEV_PORTS.includes(location.port) ? "http://127.0.0.1:8000" : "");
 const REINTENTO_MS = 5000;
 let demoMode = false;
@@ -19,16 +19,22 @@ export async function cargarCatalogo() {
 
 export async function cargarUltimas() {
   if (demoMode) {
-    return { aula: "L419", generado: new Date().toISOString(), origen: "demo", sensores: sensoresDemo.map((sensor) => ({ ...sensor, actualizado: new Date().toISOString() })) };
+    return { aula: "L418", generado: new Date().toISOString(), origen: "demo", sensores: sensoresDemo.map((sensor) => ({ ...sensor, actualizado: new Date().toISOString() })) };
   }
   return request("/api/v1/lecturas/ultimas");
 }
 
 export async function cargarHistorial(id, variable, rango = "1h") {
   if (demoMode) {
+    const sensor = sensoresDemo.find((item) => item.id === id);
+    const inicial = sensor?.variables?.[variable]?.valor;
+    const base = typeof inicial === "number" ? inicial : 0;
     const now = Date.now();
-    const points = Array.from({ length: 20 }, (_, index) => ({ t: new Date(now - (19 - index) * 180000).toISOString(), v: 50 + Math.sin(index / 2) * 5 }));
-    return { id, variable, unidad: "dB", rango, ventana_s: 30, puntos: points };
+    const points = Array.from({ length: 20 }, (_, index) => ({
+      t: new Date(now - (19 - index) * 180000).toISOString(),
+      v: Math.max(0, base + Math.sin(index / 2) * Math.max(1, Math.abs(base) * 0.08)),
+    }));
+    return { id, variable, unidad: sensor?.variables?.[variable]?.unidad ?? sensor?.unidad ?? "", rango, ventana_s: 180, puntos: points };
   }
   return request(`/api/v1/sensores/${encodeURIComponent(id)}/historial?variable=${encodeURIComponent(variable)}&rango=${rango}`);
 }

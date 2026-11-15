@@ -1,26 +1,29 @@
 aula: L419
 grupo: grupo1
 sensores:
+  # Nodo 1 — MH-Z1911A (CO₂)
   - id: sensor-co2-01
     nodo: 1
     medicion: co2
     etiqueta: "CO₂"
     periodo_s: 5
     caduca_s: 30
-    ubicacion: {x: null, y: null}
+    ubicacion: {x: 115, y: 125}
     variable_principal: co2_ppm
     estado: {regla: nivel_nodo, campo: nivel}
     variables:
       co2_ppm: {etiqueta: "CO₂", unidad: ppm, decimales: 0, agregacion: mean, invalidos: [-1, -2]}
       delta_30s: {etiqueta: "Cambio en 30 s", unidad: ppm, decimales: 0, agregacion: mean}
       temp_c: {etiqueta: "Temp. interna del sensor", unidad: "°C", decimales: 0, agregacion: mean, uso: diagnostico}
+
+  # Nodo 2 — INMP441 (nivel sonoro)
   - id: sensor-audio-01
     nodo: 2
     medicion: audio
     etiqueta: "Ruido"
     periodo_s: 1
     caduca_s: 10
-    ubicacion: {x: null, y: null}
+    ubicacion: {x: 785, y: 125}
     variable_principal: leq_db
     estado: {regla: anomalias_nodo, campo: anomalias, calibrando: calibrando}
     variables:
@@ -29,4 +32,90 @@ sensores:
       pico_db: {etiqueta: "Pico", unidad: dB, decimales: 1, agregacion: max}
       base_db: {etiqueta: "Ruido de fondo", unidad: dB, decimales: 1, agregacion: mean}
       freq_dom_hz: {etiqueta: "Frecuencia dominante", unidad: Hz, decimales: 0, agregacion: mean}
+      tonal: {etiqueta: "Concentración espectral", unidad: "0-1", decimales: 2, agregacion: mean}
+      bloques_fuertes: {etiqueta: "Bloques fuertes", unidad: bloques, decimales: 0, agregacion: max}
 
+  # Nodo 3 — MQ-2 (gas / humo)
+  - id: sensor-gas-01
+    nodo: 3
+    medicion: gas
+    etiqueta: "Gas / humo"
+    periodo_s: 2
+    caduca_s: 15
+    ubicacion: {x: 785, y: 420}
+    variable_principal: ppm_glp_est
+    estado: {regla: nivel_nodo, campo: nivel}
+    variables:
+      ppm_glp_est: {etiqueta: "GLP equivalente", unidad: ppm, decimales: 0, agregacion: mean}
+      rs_r0: {etiqueta: "Relación Rs/R0", unidad: ratio, decimales: 3, agregacion: mean}
+      v_ao: {etiqueta: "Voltaje MQ-2", unidad: V, decimales: 3, agregacion: mean}
+      do_alarma: {etiqueta: "Alarma digital", unidad: "0/1", decimales: 0, agregacion: max}
+      calentando: {etiqueta: "Calentando", unidad: "0/1", decimales: 0, agregacion: max, uso: diagnostico}
+
+  # Nodo 4 — BH1750 (iluminación)
+  - id: sensor-luz-01
+    nodo: 4
+    medicion: luz
+    etiqueta: "Luminosidad"
+    periodo_s: 10
+    caduca_s: 40
+    ubicacion: {x: 550, y: 125}
+    variable_principal: lux
+    estado: {regla: anomalias_nodo, campo: anomalias}
+    variables:
+      lux: {etiqueta: "Iluminancia en el techo", unidad: lux, decimales: 0, agregacion: mean}
+      lux_min: {etiqueta: "Mínimo", unidad: lux, decimales: 0, agregacion: mean}
+      lux_max: {etiqueta: "Máximo", unidad: lux, decimales: 0, agregacion: max}
+      lux_mesa_est: {etiqueta: "Estimación en la mesa", unidad: lux, decimales: 0, agregacion: mean}
+      luces_cambio: {etiqueta: "Cambio de luces", unidad: "estado", decimales: 0, agregacion: max, uso: diagnostico}
+
+  # Nodo 5 — MLX90640 (conteo de personas)
+  - id: sensor-termico-01
+    nodo: 5
+    medicion: termico
+    etiqueta: "Ocupación"
+    periodo_s: 5
+    caduca_s: 20
+    ubicacion: {x: 75, y: 230}
+    variable_principal: ocupacion_est
+    estado: {regla: anomalias_nodo, campo: anomalias, calibrando: calibrando}
+    variables:
+      ocupacion_est: {etiqueta: "Personas en el aula", unidad: personas, decimales: 0, agregacion: max}
+      personas_en_vista: {etiqueta: "Personas en vista", unidad: personas, decimales: 0, agregacion: max}
+      entradas: {etiqueta: "Entradas", unidad: personas, decimales: 0, agregacion: max}
+      salidas: {etiqueta: "Salidas", unidad: personas, decimales: 0, agregacion: max}
+      cruces_dudosos: {etiqueta: "Cruces dudosos", unidad: personas, decimales: 0, agregacion: max}
+      t_fondo: {etiqueta: "Temperatura de fondo", unidad: "°C", decimales: 2, agregacion: mean}
+      t_max: {etiqueta: "Temperatura máxima", unidad: "°C", decimales: 2, agregacion: max}
+      calibrando: {etiqueta: "Calibrando", unidad: "0/1", decimales: 0, agregacion: max, uso: diagnostico}
+
+  # Nodo 6 — KY-024 (puerta)
+  - id: sensor-magnetico-01
+    nodo: 6
+    medicion: magnetico
+    etiqueta: "Puerta"
+    periodo_s: 10
+    caduca_s: 40
+    ubicacion: {x: 75, y: 290}
+    variable_principal: puerta_abierta
+    estado: {regla: anomalias_nodo, campo: anomalias}
+    variables:
+      puerta_abierta: {etiqueta: "Estado de la puerta", unidad: estado, decimales: 0, agregacion: max}
+      aperturas: {etiqueta: "Aperturas", unidad: veces, decimales: 0, agregacion: max}
+      seg_abierta: {etiqueta: "Tiempo abierta", unidad: s, decimales: 1, agregacion: max}
+      campo_raw: {etiqueta: "Campo magnético", unidad: cuentas, decimales: 0, agregacion: mean}
+
+  # Nodo 7 — BME280 (temperatura, humedad y presión)
+  - id: sensor-ambiente-01
+    nodo: 7
+    medicion: ambiente
+    etiqueta: "Ambiente"
+    periodo_s: 10
+    caduca_s: 40
+    ubicacion: {x: 550, y: 310}
+    variable_principal: temp_c
+    estado: {regla: anomalias_nodo, campo: anomalias}
+    variables:
+      temp_c: {etiqueta: "Temperatura", unidad: "°C", decimales: 2, agregacion: mean}
+      hum_pct: {etiqueta: "Humedad relativa", unidad: "%", decimales: 1, agregacion: mean}
+      pres_hpa: {etiqueta: "Presión atmosférica", unidad: hPa, decimales: 2, agregacion: mean}

@@ -79,10 +79,11 @@ function simboloPara(tipo) {
   const simbolos = {
     co2: "CO₂",
     audio: "dB",
-    temperatura: "°C",
-    humedad: "%",
-    luminosidad: "lx",
-    presencia: "⌁",
+    gas: "Gas",
+    luz: "lx",
+    termico: "◉",
+    magnetico: "◇",
+    ambiente: "°C",
   };
   return simbolos[tipo] || "?";
 }

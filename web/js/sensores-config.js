@@ -1,9 +1,12 @@
-// Configuración centralizada del aula L419.
+// Configuración centralizada del aula L418.
 //
 // Para mover un sensor de ubicación, edita aquí sus coordenadas (x, y).
 // El sistema de coordenadas corresponde al viewBox del plano SVG: 0 0 900 560.
 // No es necesario tocar el SVG, el CSS ni el renderizador de marcadores.
-export const AULA = "L419";
+//
+// Los ids, tipos y variables principales deben coincidir con
+// backend/config/sensores.yaml, que es la fuente de verdad que expone la API.
+export const AULA = "L418";
 
 export const SENSORES_CONFIG = [
   {
@@ -25,52 +28,64 @@ export const SENSORES_CONFIG = [
     unidad: "dB",
     variable_principal: "leq_db",
     x: 785,
-    y: 420,
-    decimales: 1,
-  },
-  {
-    id: "sensor-temperatura-01",
-    tipo: "temperatura",
-    medicion: "temperatura",
-    etiqueta: "Temperatura",
-    unidad: "°C",
-    variable_principal: "temperatura_c",
-    x: 500,
     y: 125,
     decimales: 1,
   },
   {
-    id: "sensor-humedad-01",
-    tipo: "humedad",
-    medicion: "humedad",
-    etiqueta: "Humedad",
-    unidad: "%",
-    variable_principal: "humedad_pct",
-    x: 160,
-    y: 310,
+    id: "sensor-gas-01",
+    tipo: "gas",
+    medicion: "gas",
+    etiqueta: "Gas / humo",
+    unidad: "ppm",
+    variable_principal: "ppm_glp_est",
+    x: 785,
+    y: 420,
     decimales: 0,
   },
   {
-    id: "sensor-luminosidad-01",
-    tipo: "luminosidad",
-    medicion: "luminosidad",
+    id: "sensor-luz-01",
+    tipo: "luz",
+    medicion: "luz",
     etiqueta: "Luminosidad",
     unidad: "lux",
-    variable_principal: "iluminancia_lux",
+    variable_principal: "lux",
     x: 550,
-    y: 310,
+    y: 125,
     decimales: 0,
   },
   {
-    id: "sensor-presencia-01",
-    tipo: "presencia",
-    medicion: "presencia",
-    etiqueta: "Presencia",
+    id: "sensor-termico-01",
+    tipo: "termico",
+    medicion: "termico",
+    etiqueta: "Ocupación",
     unidad: "personas",
-    variable_principal: "personas",
-    x: 450,
-    y: 300,
+    variable_principal: "ocupacion_est",
+    x: 75,
+    y: 230,
     decimales: 0,
+  },
+  {
+    id: "sensor-magnetico-01",
+    tipo: "magnetico",
+    medicion: "magnetico",
+    etiqueta: "Puerta",
+    unidad: "",
+    variable_principal: "puerta_abierta",
+    formato: "puerta",
+    x: 75,
+    y: 290,
+    decimales: 0,
+  },
+  {
+    id: "sensor-ambiente-01",
+    tipo: "ambiente",
+    medicion: "ambiente",
+    etiqueta: "Ambiente",
+    unidad: "°C",
+    variable_principal: "temp_c",
+    x: 550,
+    y: 310,
+    decimales: 2,
   },
 ];
 

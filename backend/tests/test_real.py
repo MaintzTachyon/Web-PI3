@@ -16,6 +16,23 @@ CO2 = {"nodo": 1, "mac": "AA:BB:CC:DD:EE:01", "seq": 120, "ts": None, "uptime_ms
 AUDIO = {"nodo": 2, "mac": "AA:BB:CC:DD:EE:02", "seq": 900, "ts": None, "uptime_ms": 900000, "perdidos": 0,
          "tipo": "audio", "leq_db": 62.4, "lmax_db": 71.0, "pico_db": 80.2, "base_db": 41.5, "freq_dom_hz": 512,
          "tonal": 0.21, "bloques_fuertes": 3, "calibrando": 0, "anomalias": "RUIDO_IMPACTO", "anom_bits": 2}
+GAS = {"nodo": 3, "mac": "AA:BB:CC:DD:EE:03", "seq": 300, "ts": None, "uptime_ms": 600000, "perdidos": 0,
+       "tipo": "gas", "v_ao": 1.18, "rs_r0": 0.94, "ppm_glp_est": 135.0, "nivel": "NORMAL", "do_alarma": 0,
+       "calentando": 0, "anomalias": "NINGUNA", "anom_bits": 0}
+LUZ = {"nodo": 4, "mac": "AA:BB:CC:DD:EE:04", "seq": 400, "ts": None, "uptime_ms": 600000, "perdidos": 0,
+       "tipo": "luz", "lux": 320.5, "lux_min": 300.0, "lux_max": 340.0, "lux_mesa_est": 192.3,
+       "luces_cambio": 0, "anomalias": "NINGUNA", "anom_bits": 0}
+TERMICO = {"nodo": 5, "mac": "AA:BB:CC:DD:EE:05", "seq": 500, "ts": None, "uptime_ms": 600000, "perdidos": 0,
+           "tipo": "termico", "entradas": 4, "salidas": 2, "ocupacion_est": 2, "personas_en_vista": 2,
+           "cruces_dudosos": 0, "t_fondo": 23.0, "t_max": 29.5, "calibrando": 0,
+           "anomalias": "NINGUNA", "anom_bits": 0}
+MAGNETICO = {"nodo": 6, "mac": "AA:BB:CC:DD:EE:06", "seq": 600, "ts": None, "uptime_ms": 600000, "perdidos": 0,
+             "tipo": "magnetico", "puerta_abierta": 0, "aperturas": 1, "seg_abierta": 4.5,
+             "campo_raw": 2200, "anomalias": "NINGUNA", "anom_bits": 0}
+AMBIENTE = {"nodo": 7, "mac": "AA:BB:CC:DD:EE:07", "seq": 700, "ts": None, "uptime_ms": 600000, "perdidos": 0,
+            "tipo": "ambiente", "temp_c": 22.5, "hum_pct": 55.0, "pres_hpa": 1013.2,
+            "anomalias": "NINGUNA", "anom_bits": 0}
+
 
 
 class Record:
@@ -69,25 +86,56 @@ def servicio(datos) -> tuple[Servicio, InfluxFalso]:
     return Servicio(cargar_registro(SENSORES_PATH), repo, "real"), repo
 
 
-def test_lee_los_dos_sensores_desde_influx():
+def test_lee_los_siete_sensores_desde_influx():
     ahora = datetime.now(timezone.utc)
-    srv, repo = servicio({"co2": telegraf(CO2, ahora), "audio": telegraf(AUDIO, ahora)})
+    srv, repo = servicio({
+        "co2": telegraf(CO2, ahora),
+        "audio": telegraf(AUDIO, ahora),
+        "gas": telegraf(GAS, ahora),
+        "luz": telegraf(LUZ, ahora),
+        "termico": telegraf(TERMICO, ahora),
+        "magnetico": telegraf(MAGNETICO, ahora),
+        "ambiente": telegraf(AMBIENTE, ahora),
+    })
     respuesta = asyncio.run(srv.ultimas())
-    co2, audio = {lectura.id: lectura for lectura in respuesta.sensores}.values()
-
     assert respuesta.origen == "real"
+    assert len(respuesta.sensores) == 7
+    lecturas = {lectura.id: lectura for lectura in respuesta.sensores}
+
+    co2 = lecturas["sensor-co2-01"]
     assert co2.valor == 1120 and co2.unidad == "ppm" and co2.estado == "alerta"
     assert co2.variables["delta_30s"].valor == 35
     assert co2.variables["temp_c"].valor is None
     assert co2.anomalias == ["CO2_ALERTA_VENTILACION"]
     assert co2.diagnostico.seq == 120 and co2.diagnostico.perdidos == 2
 
+    audio = lecturas["sensor-audio-01"]
     assert audio.valor == 62.4 and audio.unidad == "dB" and audio.estado == "alerta"
     assert audio.variables["freq_dom_hz"].valor == 512
     assert audio.anomalias == ["RUIDO_IMPACTO"]
 
-    assert any('r.nodo == "1" and r.grupo == "grupo1"' in q for q in repo.consultas)
-    assert any('r.nodo == "2" and r.grupo == "grupo1"' in q for q in repo.consultas)
+    gas = lecturas["sensor-gas-01"]
+    assert gas.valor == 135.0 and gas.unidad == "ppm" and gas.estado == "normal"
+    assert gas.variables["rs_r0"].valor == 0.94
+
+    luz = lecturas["sensor-luz-01"]
+    assert luz.valor == 320.5 and luz.unidad == "lux" and luz.estado == "normal"
+    assert luz.variables["lux_mesa_est"].valor == 192.3
+
+    termico = lecturas["sensor-termico-01"]
+    assert termico.valor == 2 and termico.unidad == "personas" and termico.estado == "normal"
+    assert termico.variables["personas_en_vista"].valor == 2
+
+    magnetico = lecturas["sensor-magnetico-01"]
+    assert magnetico.valor == 0 and magnetico.estado == "normal"
+    assert magnetico.variables["aperturas"].valor == 1
+
+    ambiente = lecturas["sensor-ambiente-01"]
+    assert ambiente.valor == 22.5 and ambiente.estado == "normal"
+    assert ambiente.variables["pres_hpa"].valor == 1013.2
+
+    for medicion, nodo in [("co2", 1), ("audio", 2), ("gas", 3), ("luz", 4), ("termico", 5), ("magnetico", 6), ("ambiente", 7)]:
+        assert any(f'r._measurement == "{medicion}"' in q and f'r.nodo == "{nodo}" and r.grupo == "grupo1"' in q for q in repo.consultas)
     json.dumps(respuesta.model_dump(mode="json"))
 
 
@@ -104,17 +152,26 @@ def test_fallos_reales():
     ahora = datetime.now(timezone.utc)
     fallo_co2 = {**CO2, "co2_ppm": -1, "nivel": "NORMAL", "anomalias": "FALLO_SENSOR", "anom_bits": 1}
     fallo_audio = {**AUDIO, "anomalias": "FALLO_AUDIO", "anom_bits": 1}
-    srv, _ = servicio({"co2": telegraf(fallo_co2, ahora), "audio": telegraf(fallo_audio, ahora)})
-    co2, audio = asyncio.run(srv.ultimas()).sensores
-    assert co2.estado == "falla" and co2.valor is None and co2.variables["co2_ppm"].valor is None
-    assert audio.estado == "falla"
+    srv, _ = servicio({
+        "co2": telegraf(fallo_co2, ahora),
+        "audio": telegraf(fallo_audio, ahora),
+        "gas": telegraf({**GAS, "anomalias": "FALLO_SENSOR", "anom_bits": 1}, ahora),
+    })
+    lecturas = {lectura.id: lectura for lectura in asyncio.run(srv.ultimas()).sensores}
+    assert lecturas["sensor-co2-01"].estado == "falla"
+    assert lecturas["sensor-co2-01"].valor is None
+    assert lecturas["sensor-co2-01"].variables["co2_ppm"].valor is None
+    assert lecturas["sensor-audio-01"].estado == "falla"
+    assert lecturas["sensor-gas-01"].estado == "falla"
 
 
 def test_sensor_apagado_queda_sin_datos():
     viejo = datetime.now(timezone.utc) - timedelta(minutes=2)
     srv, _ = servicio({"co2": telegraf(CO2, viejo), "audio": []})
-    co2, audio = asyncio.run(srv.ultimas()).sensores
-    assert co2.estado == "sin_datos" and audio.estado == "sin_datos"
+    lecturas = {lectura.id: lectura for lectura in asyncio.run(srv.ultimas()).sensores}
+    assert lecturas["sensor-co2-01"].estado == "sin_datos"
+    assert lecturas["sensor-audio-01"].estado == "sin_datos"
+    assert lecturas["sensor-ambiente-01"].estado == "sin_datos"
 
 
 def test_stream_emite_lecturas_y_conexion():
@@ -128,7 +185,7 @@ def test_stream_emite_lecturas_y_conexion():
         await stream.aclose()
         return eventos
 
-    eventos = asyncio.run(primeros(3))
+    eventos = asyncio.run(primeros(8))
     assert eventos[0].startswith("event: lectura") and '"sensor-co2-01"' in eventos[0]
     assert eventos[1].startswith("event: lectura") and '"sensor-audio-01"' in eventos[1]
-    assert eventos[2].startswith("event: conexion") and '"parcial"' in eventos[2]
+    assert eventos[7].startswith("event: conexion") and '"parcial"' in eventos[7]

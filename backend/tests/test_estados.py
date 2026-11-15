@@ -19,3 +19,20 @@ def test_estados_audio():
     assert estado_anomalias_nodo({"anomalias": "NINGUNA"}, 1, 10) == "normal"
     assert estado_anomalias_nodo({"anomalias": "FALLO_AUDIO"}, 1, 10) == "falla"
 
+
+def test_estados_gas():
+    for nivel, esperado in [("NORMAL", "normal"), ("ALERTA", "alerta"), ("CRITICO", "critico"), ("CALENTANDO", "calentando")]:
+        assert estado_nivel_nodo({"nivel": nivel, "ppm_glp_est": 120}, 1, 15) == esperado
+    assert estado_nivel_nodo({"nivel": "NORMAL", "anomalias": "FALLO_SENSOR"}, 1, 15) == "falla"
+    assert estado_nivel_nodo({"nivel": "NORMAL"}, 16, 15) == "sin_datos"
+
+
+def test_estados_resto_de_nodos():
+    # Luz, térmico, puerta y ambiente usan la regla de anomalías del nodo.
+    assert estado_anomalias_nodo({"anomalias": "ILUMINACION_BAJA"}, 1, 40) == "alerta"
+    assert estado_anomalias_nodo({"anomalias": "NINGUNA", "calibrando": 1}, 1, 20) == "calibrando"
+    assert estado_anomalias_nodo({"anomalias": "FALLO_SENSOR"}, 1, 20) == "alerta"
+    assert estado_anomalias_nodo({"anomalias": "PUERTA_ABIERTA_PROLONGADA"}, 1, 40) == "alerta"
+    assert estado_anomalias_nodo({"anomalias": "TEMP_FUERA_CONFORT"}, 1, 40) == "alerta"
+    assert estado_anomalias_nodo({"anomalias": "NINGUNA"}, 41, 40) == "sin_datos"
+

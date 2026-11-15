@@ -8,7 +8,15 @@ from app.registro import cargar_registro
 def test_carga_catalogo():
     registro = cargar_registro(Path(__file__).parents[1] / "config" / "sensores.yaml")
     assert registro.aula == "L419"
-    assert {sensor.id for sensor in registro.sensores} == {"sensor-co2-01", "sensor-audio-01"}
+    assert {sensor.id for sensor in registro.sensores} == {
+        "sensor-co2-01",
+        "sensor-audio-01",
+        "sensor-gas-01",
+        "sensor-luz-01",
+        "sensor-termico-01",
+        "sensor-magnetico-01",
+        "sensor-ambiente-01",
+    }
 
 
 def test_rechaza_ids_repetidos(tmp_path):

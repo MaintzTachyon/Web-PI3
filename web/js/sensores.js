@@ -57,11 +57,11 @@ export function renderSensorList(onSelect) {
     const item = document.createElement("article");
     item.className = `sensor-item${reading.id === selectedId ? " selected" : ""}`;
     item.tabIndex = 0;
-    item.setAttribute("aria-label", `${reading.etiqueta}: ${formatValue(reading.id, principal(reading), reading.valor)} ${reading.unidad}, ${reading.estado.replace("_", " ")}`);
+    item.setAttribute("aria-label", `${reading.etiqueta}: ${formatValue(reading.id, principal(reading), reading.valor)} ${unidadVisible(reading)}, ${reading.estado.replace("_", " ")}`);
 
     const valor = formatValue(reading.id, principal(reading), reading.valor);
-    const estadoLabel = reading.estado.replace("_", " ");
     const updated = formatTime(reading.actualizado);
+    const unidad = unidadVisible(reading);
 
     item.innerHTML = `
       <div class="sensor-item-main">
@@ -73,7 +73,7 @@ export function renderSensorList(onSelect) {
       </div>
       <div class="sensor-reading">
         <span class="sensor-value">${valor}</span>
-        <span class="sensor-unit">${reading.unidad}</span>
+        <span class="sensor-unit">${unidad}</span>
       </div>
       <span class="sensor-updated">${updated}</span>
     `;
@@ -116,7 +116,7 @@ export function renderDetail() {
     ? "Sensor aún no conectado al sistema"
     : `Nodo ${reading.nodo} · Actualizado ${formatTime(reading.actualizado)}`;
   document.querySelector("#detail-value").textContent = formatValue(selectedId, principal(reading), reading.valor);
-  document.querySelector("#detail-unit").textContent = reading.unidad;
+  document.querySelector("#detail-unit").textContent = unidadVisible(reading);
   const status = document.querySelector("#detail-status");
   status.className = `status-badge ${reading.estado}`;
   status.textContent = reading.estado.replace("_", " ");
@@ -146,7 +146,17 @@ function principal(reading) {
   return catalog.get(reading.id)?.variable_principal ?? Object.keys(reading.variables ?? {})[0];
 }
 
+function unidadVisible(reading) {
+  const config = obtenerConfiguracion(reading.id);
+  return config?.unidad ?? reading.unidad;
+}
+
 function formatValue(id, variable, value) {
+  const config = obtenerConfiguracion(id);
+  if (config?.formato === "puerta" && variable === config.variable_principal) {
+    if (typeof value !== "number") return value ?? "—";
+    return value ? "Abierta" : "Cerrada";
+  }
   if (typeof value !== "number") return value ?? "—";
   // Catálogo de la API → datos DEMO → configuración del plano.
   const decimales = catalog.get(id)?.variables?.[variable]?.decimales

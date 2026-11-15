@@ -15,7 +15,7 @@ def test_api_demo():
     assert health.status_code == 200
     assert health.json()["influx"] == "ok"
     assert latest.json()["origen"] == "demo"
-    assert len(latest.json()["sensores"]) == 2
+    assert len(latest.json()["sensores"]) == 7
     assert catalog.json()["aula"] == "L419"
 
 
@@ -24,7 +24,7 @@ def test_sirve_frontend_y_historial_demo():
         page = client.get("/")
         script = client.get("/js/datos.js")
         history = client.get("/api/v1/sensores/sensor-audio-01/historial?variable=leq_db&rango=15m")
-    assert page.status_code == 200 and "Aula L419" in page.text
+    assert page.status_code == 200 and "Aula L418" in page.text
     assert script.status_code == 200
     assert len(history.json()["puntos"]) > 1
 

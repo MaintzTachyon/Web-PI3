@@ -40,7 +40,7 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   │   ├── registro.py      # carga y valida sensores.yaml
 │   │   ├── modelos.py       # modelos Pydantic de la API
 │   │   ├── influx.py        # consultas Flux de solo lectura
-│   │   ├── estados.py       # reglas de estado de CO₂ y audio
+│   │   ├── estados.py       # reglas de estado de los siete nodos
 │   │   ├── servicio.py      # orquestación y contrato de respuestas
 │   │   ├── sondeo.py        # sondeo periódico y distribución SSE
 │   │   ├── simulador.py     # lecturas del modo DEMO
@@ -48,7 +48,7 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   ├── config/sensores.yaml # catálogo configurable de sensores
 │   ├── tests/                # pruebas del catálogo, estados y API
 │   ├── .env.example
-│   ├── Dockerfile
+│   ├── Dockerfile            # imagen solo API (opcional)
 │   └── requirements.txt
 ├── web/
 │   ├── index.html
@@ -61,9 +61,27 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   │   └── graficos.js       # historial Chart.js
 │   ├── data/sensores-demo.js
 │   └── package.json
+├── reference/
+│   └── gemelo-digital-L418/  # firmware, stack IoT y documentación de adquisición
+├── Dockerfile                # imagen única: API + frontend
+├── .dockerignore
 ├── guia_backend_gemelo_digital_l419.md
 └── guia_frontend_gemelo_digital_l419.md
 ```
+
+## Repositorio único y carpeta de referencia
+
+El frontend (`web/`) y el backend (`backend/`) viven en este mismo repositorio.
+El material del proyecto de adquisición que antes estaba anidado en
+`backend/gemelo-digital-L418/` se movió a `reference/gemelo-digital-L418/` y se
+eliminó su repositorio Git interno. Sus archivos ahora se versionan desde la
+raíz de Web-PI3 y se pueden incluir en el mismo commit.
+
+La carpeta `reference/` conserva el firmware ESP32, el stack de Mosquitto,
+Telegraf, InfluxDB y Grafana, y el informe del proyecto de adquisición. No es
+necesaria para arrancar la API ni el frontend, pero sí para entender o
+reprogramar la cadena de sensores. Ver
+[`reference/README.md`](reference/README.md).
 
 ## Instalación del backend
 
@@ -110,9 +128,12 @@ Es el modo predeterminado:
 BACKEND_MODO=demo
 ```
 
-No necesita InfluxDB ni token. Genera lecturas coherentes para CO₂ y audio,
-manteniendo el mismo contrato de la API real. El frontend muestra la etiqueta
-`DEMO`.
+No necesita InfluxDB ni token. El simulador del backend genera lecturas para
+CO₂ y audio, manteniendo el mismo contrato de la API real. El catálogo ya
+expone los siete sensores; para probar gas, luz, ocupación, puerta y ambiente
+con valores hay que usar `BACKEND_MODO=real`. El frontend muestra la etiqueta
+`DEMO` cuando corresponde y conserva un conjunto de datos simulados propio
+para funcionar sin API.
 
 ### Modo real
 
@@ -164,8 +185,8 @@ Devuelve el estado del backend, InfluxDB y la conexión general de sensores:
   "backend": "ok",
   "influx": "ok",
   "conexion": "en_linea",
-  "sensores_esperados": 2,
-  "sensores_con_datos": 2
+  "sensores_esperados": 7,
+  "sensores_con_datos": 7
 }
 ```
 
@@ -217,10 +238,20 @@ stream se interrumpe.
 ## Catálogo de sensores
 
 El archivo [`backend/config/sensores.yaml`](backend/config/sensores.yaml) es la
-fuente de configuración. Actualmente declara:
+fuente de configuración. Actualmente declara los siete nodos del proyecto:
 
 - `sensor-co2-01`, nodo 1, measurement `co2`.
 - `sensor-audio-01`, nodo 2, measurement `audio`.
+- `sensor-gas-01`, nodo 3, measurement `gas`.
+- `sensor-luz-01`, nodo 4, measurement `luz`.
+- `sensor-termico-01`, nodo 5, measurement `termico`.
+- `sensor-magnetico-01`, nodo 6, measurement `magnetico`.
+- `sensor-ambiente-01`, nodo 7, measurement `ambiente`.
+
+Los ids, los measurements y los nombres de las variables coinciden con el JSON
+que publica `reference/gemelo-digital-L418/firmware/gateway/gateway.ino` y con los
+fields que Telegraf guarda en InfluxDB. La posición de cada sensor en el plano
+se configura en `web/js/sensores-config.js` usando los mismos ids.
 
 Para agregar otro sensor del mismo tipo, se agrega una entrada YAML con un
 `id`, `nodo`, `medicion`, variables, unidad y regla de estado. No es necesario
@@ -231,12 +262,17 @@ exactamente con los fields almacenados en InfluxDB.
 
 El backend calcula el estado para que el frontend solo lo presente:
 
-- **CO₂ (`nivel_nodo`):** respeta `nivel` enviado por el nodo; convierte
-  `NORMAL`, `ALERTA`, `CRITICO`, `CALENTANDO` y `SIN_DATO`.
+- **CO₂ y gas (`nivel_nodo`):** respetan el `nivel` enviado por el nodo
+  (`NORMAL`, `ALERTA`, `CRITICO`, `CALENTANDO`, `SIN_DATO`). Los valores
+  inválidos de CO₂ (`-1`, `-2`) y `FALLO_SENSOR` pasan a `falla`.
 - **Audio (`anomalias_nodo`):** detecta calibración, `FALLO_AUDIO` y otras
   anomalías.
+- **Luz, térmico, puerta y ambiente (`anomalias_nodo`):** activan
+  `calibrando` cuando el nodo lo indica y `alerta` cuando publican una
+  anomalía. Usan la misma regla que audio, por lo que el backend actual solo
+  convierte `FALLO_AUDIO` en `falla`; los demás fallos se muestran como
+  `alerta`.
 - Una lectura más antigua que `caduca_s` pasa a `sin_datos`.
-- `FALLO_SENSOR`, `FALLO_AUDIO`, `-1` y `-2` se representan como `falla`.
 
 ## Ejecutar el frontend
 
@@ -288,8 +324,9 @@ carpeta del frontend (por ejemplo `/app/web` en Docker).
 ### Leer los sensores reales de CO₂ y ruido
 
 1. Levantar el stack de adquisición (`servidor_iot/`: Mosquitto, Telegraf e
-   InfluxDB) y encender el gateway y los nodos 1 (CO₂) y 2 (audio). El gateway
-   debe publicar con `GRUPO = "grupo1"` (o el valor de `GRUPO` del backend).
+   InfluxDB) y encender el gateway y los siete nodos (CO₂, audio, gas, luz,
+   ocupación, puerta y ambiente). El gateway debe publicar con
+   `GRUPO = "grupo1"` (o el valor de `GRUPO` del backend).
 2. Crear un token de **solo lectura** del bucket `gemelo` (ver la guía del
    backend, sección 10).
 3. En `backend/.env`:
@@ -303,8 +340,8 @@ carpeta del frontend (por ejemplo `/app/web` en Docker).
 
 4. Ejecutar el comando de arriba y abrir <http://127.0.0.1:8000>.
 
-El indicador del encabezado muestra `En línea` (los dos sensores envían),
-`Conexión parcial` (solo uno), `Sin datos de sensores` o
+El indicador del encabezado muestra `En línea` (los siete sensores envían),
+`Conexión parcial` (solo algunos), `Sin datos de sensores` o
 `InfluxDB no disponible`. Si InfluxDB falla, los sensores aparecen como
 *sin datos*; los datos DEMO solo se usan cuando no hay backend.
 
@@ -347,7 +384,7 @@ pytest -q
 Las pruebas cubren:
 
 - Carga del catálogo y rechazo de IDs duplicados.
-- Estados de CO₂ y audio.
+- Estados de CO₂, gas y del resto de nodos.
 - Conversión de errores de sensores.
 - Endpoints básicos del modo DEMO.
 - Rechazo de variables de historial no declaradas.
@@ -362,20 +399,24 @@ node --check web/js/plano.js
 node --check web/js/graficos.js
 ```
 
-## Docker para el backend
+## Docker: frontend y backend en una sola imagen
 
-La imagen del backend se construye con:
+La imagen de la raíz sirve la API y el frontend desde el mismo origen:
 
 ```bash
-docker build -t gemelo-l419-api ./backend
+docker build -t gemelo-l418 .
+docker run --rm -p 8000:8000 --env-file backend/.env gemelo-l418
 ```
 
-Ejemplo de ejecución en modo DEMO:
+Abrir <http://127.0.0.1:8000>. La API queda en `/api/v1` y el frontend en `/`.
+El contenedor usa `WEB_DIR=/app/web` para encontrar la carpeta `web/`.
+
+Si solo se necesita la API, todavía se puede construir la imagen específica del
+backend:
 
 ```bash
-docker run --rm -p 8000:8000 \
-  -e BACKEND_MODO=demo \
-  gemelo-l419-api
+docker build -t gemelo-l418-api ./backend
+docker run --rm -p 8000:8000 -e BACKEND_MODO=demo gemelo-l418-api
 ```
 
 Para producción se deben proporcionar las variables reales mediante un
