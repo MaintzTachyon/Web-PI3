@@ -106,6 +106,69 @@ export async function selectSensor(id, range = "1h") {
   } catch { message.textContent = "No se pudo cargar el historial."; }
 }
 
+/**
+ * Genera y descarga un archivo CSV con los datos del historial del sensor seleccionado.
+ * Usa el rango actualmente seleccionado en #history-range.
+ */
+export async function descargarReporteCSV() {
+  try {
+    const sensorId = getSelectedId();
+    if (!sensorId) {
+      alert("Selecciona un sensor antes de descargar el reporte.");
+      return;
+    }
+
+    const reading = getReading(sensorId);
+    if (!reading) {
+      alert("No se encontraron datos del sensor seleccionado.");
+      return;
+    }
+
+    const config = obtenerConfiguracion(sensorId);
+    const variable = config?.variable_principal || Object.keys(reading.variables ?? {})[0];
+    const unidad = config?.unidad || reading.unidad || "";
+    const rangoSelect = document.querySelector("#history-range");
+    const rango = rangoSelect ? rangoSelect.value : "1h";
+
+    const history = await cargarHistorial(sensorId, variable, rango);
+
+    if (!history || !history.puntos || history.puntos.length === 0) {
+      alert("No hay datos disponibles para generar el reporte.");
+      return;
+    }
+
+    const filas = history.puntos.map((punto) => {
+      let fecha, valor;
+      if (Array.isArray(punto)) {
+        fecha = punto[0];
+        valor = punto[1];
+      } else {
+        fecha = punto.t;
+        valor = punto.v;
+      }
+      const fechaISO = fecha instanceof Date ? fecha.toISOString() : new Date(fecha).toISOString();
+      return `${fechaISO},${valor},${unidad}`;
+    });
+
+    const csv = "timestamp,valor,unidad\n" + filas.join("\n");
+    const nombreArchivo = `${(reading.etiqueta || "sensor").replace(/[^a-z0-9]/gi, "_")}_${rango}_reporte.csv`;
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al generar reporte CSV:", error);
+    alert("No se pudo generar el reporte CSV. Inténtalo de nuevo.");
+  }
+}
+
 export function renderDetail() {
   const reading = readings.get(selectedId);
   if (!reading) return;

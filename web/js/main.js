@@ -3,6 +3,7 @@ import { limpiarGrafico } from "./graficos.js";
 import { configurarPlano, actualizarMarcadores, seleccionarMarcador } from "./plano.js";
 import {
   completarPendientes,
+  descargarReporteCSV,
   lecturasSinDatos,
   limpiarSeleccion,
   renderSensorList,
@@ -53,6 +54,19 @@ async function init() {
     setConnection("offline", "InfluxDB no disponible");
   }
   cleanupStream = suscribirStream({ onReading: handleReading, onConnection: handleConnection, onError: handleStreamError });
+
+  // Conectar botón de descarga de reporte CSV
+  try {
+    const btn = document.querySelector("#descargar-reporte");
+    if (btn) {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        descargarReporteCSV();
+      });
+    }
+  } catch {
+    // El reporte CSV es opcional; si falla, la web sigue funcionando normalmente
+  }
 }
 
 async function refresh() {
