@@ -8,3 +8,6 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 Thumbs.db
+
+# Historial descargado del gateway (modo gateway)
+backend/datos/

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .estados import REGLAS
+from .gateway import GatewayRepository
 from .influx import InfluxRepository
 from .modelos import (
     Diagnostico,
@@ -19,10 +20,22 @@ from .simulador import Simulador
 
 
 class Servicio:
-    def __init__(self, registro: RegistroConfig, repository: InfluxRepository | Simulador, origen: str):
+    def __init__(
+        self,
+        registro: RegistroConfig,
+        repository: GatewayRepository | InfluxRepository | Simulador,
+        origen: str,
+        fuente: str | None = None,
+    ):
         self.registro = registro
         self.repository = repository
         self.origen = origen
+        self.fuente = fuente or origen
+
+    async def sincronizar(self) -> None:
+        # Solo el gateway necesita traer datos antes de leer; InfluxDB y el simulador se consultan directo.
+        if hasattr(self.repository, "sincronizar"):
+            await self.repository.sincronizar()
 
     def catalogo(self) -> list[SensorCatalogo]:
         return [SensorCatalogo.model_validate(sensor.model_dump(by_alias=True)) for sensor in self.registro.sensores]
@@ -110,6 +123,7 @@ class Servicio:
         count = sum(reading.estado != "sin_datos" for reading in latest.sensores)
         influx_ok = await self.repository.disponible()
         return SaludRespuesta(
+            fuente=self.fuente,
             influx="ok" if influx_ok else "no_disponible",
             conexion=conexion(latest.sensores),
             sensores_esperados=len(latest.sensores),

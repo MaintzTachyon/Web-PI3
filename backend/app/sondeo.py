@@ -20,6 +20,7 @@ class Sondeo:
         self._suscriptores: set[asyncio.Queue[str]] = set()
         self._ultima: dict[str, str] = {}
         self._conexion: str | None = None
+        self._fuente_ok = True
         self._task: asyncio.Task[None] | None = None
 
     async def iniciar(self) -> None:
@@ -32,6 +33,14 @@ class Sondeo:
 
     async def _ciclo(self) -> None:
         while True:
+            fuente_ok = True
+            try:
+                await self.servicio.sincronizar()
+            except Exception:
+                # Sin gateway se siguen calculando las lecturas: envejecen y pasan a "sin_datos".
+                logger.warning("No se pudo leer la fuente de datos", exc_info=True)
+                fuente_ok = False
+            self._fuente_ok = fuente_ok
             try:
                 respuesta = await self.servicio.ultimas()
                 for reading in respuesta.sensores:
@@ -39,7 +48,10 @@ class Sondeo:
                     if self._ultima.get(reading.id) != key:
                         self._ultima[reading.id] = key
                         await self.publicar(evento("lectura", reading.model_dump(mode="json")))
-                await self._publicar_conexion(conexion(respuesta.sensores), influx="ok")
+                if fuente_ok:
+                    await self._publicar_conexion(conexion(respuesta.sensores), influx="ok")
+                else:
+                    await self._publicar_conexion("sin_datos", influx="no_disponible")
             except Exception:
                 # Nunca dejar morir la tarea: sin ella no hay tiempo real.
                 logger.exception("Error durante el sondeo de sensores")
@@ -48,8 +60,8 @@ class Sondeo:
             await asyncio.sleep(self.settings.sondeo_s)
 
     async def _publicar_conexion(self, estado: str, influx: str) -> None:
-        if self._conexion != estado:
-            self._conexion = estado
+        if self._conexion != f"{estado}:{influx}":
+            self._conexion = f"{estado}:{influx}"
             await self.publicar(evento("conexion", {"conexion": estado, "influx": influx}))
 
     async def suscribir(self) -> AsyncIterator[str]:
@@ -60,7 +72,10 @@ class Sondeo:
                 inicial = await self.servicio.ultimas()
                 for reading in inicial.sensores:
                     yield evento("lectura", reading.model_dump(mode="json"))
-                yield evento("conexion", {"conexion": conexion(inicial.sensores), "influx": "ok"})
+                if self._fuente_ok:
+                    yield evento("conexion", {"conexion": conexion(inicial.sensores), "influx": "ok"})
+                else:
+                    yield evento("conexion", {"conexion": "sin_datos", "influx": "no_disponible"})
             except Exception:
                 logger.exception("No se pudo obtener el estado inicial del stream")
                 yield evento("conexion", {"conexion": "sin_datos", "influx": "no_disponible"})

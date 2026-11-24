@@ -7,10 +7,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[1]
 SENSORES_PATH = ROOT / "config" / "sensores.yaml"
+# gateway: firmware/gateway_ap por HTTP (principal) · real: InfluxDB (stack de infra/) · demo: simulado
+MODOS = ("gateway", "real", "demo")
 
 
 class Settings(BaseSettings):
     modo: str = Field("demo", alias="BACKEND_MODO")
+    gateway_url: str = Field("http://192.168.4.1", alias="GATEWAY_URL")
+    datos_db: str = Field("", alias="DATOS_DB")
     influx_url: str = Field("http://localhost:8086", alias="INFLUX_URL")
     influx_org: str = Field("utec", alias="INFLUX_ORG")
     influx_bucket: str = Field("gemelo", alias="INFLUX_BUCKET")
@@ -25,9 +29,14 @@ class Settings(BaseSettings):
     @field_validator("modo")
     @classmethod
     def validar_modo(cls, value: str) -> str:
-        if value not in {"real", "demo"}:
-            raise ValueError("BACKEND_MODO debe ser 'real' o 'demo'")
+        if value not in MODOS:
+            raise ValueError(f"BACKEND_MODO debe ser uno de: {', '.join(MODOS)}")
         return value
+
+    @property
+    def ruta_db(self) -> Path:
+        """SQLite donde se guarda lo descargado del gateway (historial y CSV)."""
+        return Path(self.datos_db) if self.datos_db else ROOT / "datos" / "gemelo.sqlite"
 
     @property
     def origenes_cors(self) -> list[str]:

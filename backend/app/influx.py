@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .config import Settings
+from .errores import FuenteNoDisponible
 from .registro import SensorConfig
 
 
@@ -12,7 +13,7 @@ RANGOS = {"15m": (900, 10), "1h": (3600, 30), "6h": (21600, 120), "24h": (86400,
 TOLERANCIA_S = 1.0
 
 
-class InfluxUnavailable(RuntimeError):
+class InfluxUnavailable(FuenteNoDisponible):
     pass
 
 

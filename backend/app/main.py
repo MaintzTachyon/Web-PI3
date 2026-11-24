@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .config import SENSORES_PATH, get_settings
+from .gateway import GatewayRepository
 from .influx import InfluxRepository
 from .registro import cargar_registro
 from .rutas import lecturas, salud, sensores, stream
@@ -16,8 +17,13 @@ from .sondeo import Sondeo
 def create_app() -> FastAPI:
     settings = get_settings()
     registro = cargar_registro(SENSORES_PATH)
-    repository = Simulador() if settings.modo == "demo" else InfluxRepository(settings)
-    servicio = Servicio(registro, repository, settings.modo)
+    if settings.modo == "gateway":
+        repository = GatewayRepository(settings, settings.ruta_db)
+    elif settings.modo == "real":
+        repository = InfluxRepository(settings)
+    else:
+        repository = Simulador()
+    servicio = Servicio(registro, repository, "demo" if settings.modo == "demo" else "real", fuente=settings.modo)
     sondeo = Sondeo(servicio, settings)
 
     @asynccontextmanager
@@ -25,6 +31,8 @@ def create_app() -> FastAPI:
         await app.state.sondeo.iniciar()
         yield
         await app.state.sondeo.detener()
+        if isinstance(repository, GatewayRepository):
+            await repository.cerrar()
 
     app = FastAPI(title="Gemelo Digital L419", version="1.0.0", lifespan=lifespan)
     app.state.servicio = servicio

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from ..influx import InfluxUnavailable
+from ..errores import FuenteNoDisponible
 
 router = APIRouter()
 
@@ -9,7 +9,7 @@ router = APIRouter()
 async def ultimas(request: Request):
     try:
         return await request.app.state.servicio.ultimas()
-    except InfluxUnavailable as exc:
+    except FuenteNoDisponible as exc:
         from fastapi import HTTPException
 
         raise HTTPException(status_code=503, detail={"influx": "no_disponible"}) from exc

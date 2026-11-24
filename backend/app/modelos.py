@@ -87,6 +87,8 @@ class HistorialRespuesta(BaseModel):
 
 class SaludRespuesta(BaseModel):
     backend: Literal["ok"] = "ok"
+    fuente: Literal["gateway", "real", "demo"]
+    # Estado de la fuente de datos (se mantiene el nombre "influx" por compatibilidad).
     influx: Literal["ok", "no_disponible"]
     conexion: Conexion
     sensores_esperados: int

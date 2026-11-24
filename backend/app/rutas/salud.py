@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 
-from ..influx import InfluxUnavailable
+from ..errores import FuenteNoDisponible
 
 router = APIRouter()
 
@@ -9,8 +9,8 @@ router = APIRouter()
 async def salud(request: Request):
     try:
         response = await request.app.state.servicio.salud()
-    except InfluxUnavailable as exc:
+    except FuenteNoDisponible as exc:
         raise HTTPException(status_code=503, detail={"influx": "no_disponible"}) from exc
-    if response.influx == "no_disponible" and request.app.state.servicio.origen == "real":
+    if response.influx == "no_disponible" and request.app.state.servicio.fuente != "demo":
         raise HTTPException(status_code=503, detail={"influx": "no_disponible"})
     return response
