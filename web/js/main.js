@@ -26,6 +26,14 @@ let selectedId;
 let cleanupStream;
 let refreshTimer;
 
+// De dónde lee el backend (GET /api/v1/sensores → fuente).
+const FUENTES = {
+  gateway: ["Gateway", "Gateway ESP32 (red GEMELO-L419)"],
+  real: ["InfluxDB", "InfluxDB mediante API segura"],
+  demo: ["Simulador", "Datos simulados (DEMO)"],
+};
+let fuente = FUENTES.gateway;
+
 async function init() {
   // Los marcadores se dibujan desde la configuración centralizada en sensores-config.js.
   configurarPlano(select, floorplan);
@@ -41,17 +49,20 @@ async function init() {
     catalog = await cargarCatalogo();
   } catch {
     activarDemo();
+    document.querySelector("#fuente-label").textContent = "Datos de ejemplo (API no disponible)";
     await refresh();
     setConnection("offline", "Modo DEMO · API no disponible");
     return;
   }
   setCatalog(catalog.sensores);
+  fuente = FUENTES[catalog.fuente] ?? FUENTES.gateway;
+  document.querySelector("#fuente-label").textContent = fuente[1];
   desactivarDemo();
   try {
     await refresh();
   } catch {
     pintar(lecturasSinDatos());
-    setConnection("offline", "InfluxDB no disponible");
+    setConnection("offline", `${fuente[0]} no disponible`);
   }
   cleanupStream = suscribirStream({ onReading: handleReading, onConnection: handleConnection, onError: handleStreamError });
 
@@ -97,7 +108,7 @@ function handleReading(reading) {
 }
 
 function handleConnection(info) {
-  if (info.influx === "no_disponible") return setConnection("offline", "InfluxDB no disponible");
+  if (info.influx === "no_disponible") return setConnection("offline", `${fuente[0]} no disponible`);
   const [state, label] = CONEXION[info.conexion] ?? CONEXION.sin_datos;
   setConnection(state, label);
 }

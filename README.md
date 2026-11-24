@@ -3,22 +3,31 @@
 Aplicación web para visualizar el estado de los sensores del aula L419 sobre
 un plano interactivo. El proyecto está dividido en:
 
-- **Backend:** API FastAPI de solo lectura que consulta InfluxDB, calcula el
-  estado de los sensores y publica actualizaciones mediante SSE.
+- **Backend:** API FastAPI de solo lectura que lee el gateway ESP32 por HTTP
+  (o InfluxDB), calcula el estado de los sensores y publica actualizaciones
+  mediante SSE.
 - **Frontend:** página web estática con el plano SVG del aula, tarjetas de
   sensores, detalle de variables e historial mediante Chart.js.
 
-El backend no reemplaza el sistema de adquisición existente. No publica en
-MQTT, no se conecta directamente a los ESP32 y no escribe en InfluxDB. El
-flujo esperado es:
+La base de comunicación es el gateway de
+[josecarita/Gemelo-digital-L419-Gateway](https://github.com/josecarita/Gemelo-digital-L419-Gateway)
+(copiado en `firmware/`). No usa broker ni internet: el gateway crea su propia
+red Wi-Fi, guarda los mensajes en su memoria flash y los ofrece por HTTP.
 
 ```text
-Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
-                                                   ↓
-                                          Backend FastAPI
-                                                   ↓
-                                          Frontend web L419
+6 nodos ESP32 ─ESP-NOW─► Gateway ESP32 (red GEMELO-L419, http://192.168.4.1)
+                                   │  /api/ultimos · /api/datos · /api/estado · /api/hora
+                                   ▼
+                    Backend FastAPI (laptop conectada a GEMELO-L419)
+                    └─ guarda el historial en backend/datos/gemelo.sqlite
+                                   │  HTTP + SSE
+                                   ▼
+                           Frontend web (mismo puerto 8000)
 ```
+
+El backend solo lee del gateway (y le envía la hora, porque no tiene NTP).
+El camino anterior con MQTT, Telegraf e InfluxDB (`infra/`) sigue disponible
+como `BACKEND_MODO=real`.
 
 ## Requisitos
 
@@ -39,7 +48,8 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   │   ├── config.py        # variables de entorno
 │   │   ├── registro.py      # carga y valida sensores.yaml
 │   │   ├── modelos.py       # modelos Pydantic de la API
-│   │   ├── influx.py        # consultas Flux de solo lectura
+│   │   ├── gateway.py       # lee el gateway ESP32 por HTTP y guarda el historial (SQLite)
+│   │   ├── influx.py        # consultas Flux de solo lectura (modo real)
 │   │   ├── estados.py       # reglas de estado de los seis nodos
 │   │   ├── servicio.py      # orquestación y contrato de respuestas
 │   │   ├── sondeo.py        # sondeo periódico y distribución SSE
@@ -61,8 +71,10 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   │   └── graficos.js       # historial Chart.js
 │   ├── data/sensores-demo.js
 │   └── package.json
+├── firmware/                 # gateway_ap y los 6 nodos (repo de Jose)
+├── infra/                    # stack MQTT + Telegraf + InfluxDB (modo real)
 ├── reference/
-│   └── gemelo-digital-L418/  # firmware, stack IoT y documentación de adquisición
+│   └── gemelo-digital-L418/  # documentación de adquisición
 ├── Dockerfile                # imagen única: API + frontend
 ├── .dockerignore
 ├── guia_backend_gemelo_digital_l419.md
@@ -107,7 +119,8 @@ Las dependencias principales son:
 - `influxdb-client`: cliente oficial para consultar InfluxDB.
 - `pydantic-settings`: configuración mediante variables de entorno.
 - `pyyaml`: lectura del catálogo de sensores.
-- `pytest` y `httpx`: pruebas automatizadas.
+- `httpx`: cliente HTTP para leer el gateway (y pruebas).
+- `pytest`: pruebas automatizadas.
 
 ## Configuración del backend
 
@@ -135,9 +148,30 @@ con valores hay que usar `BACKEND_MODO=real`. El frontend muestra la etiqueta
 `DEMO` cuando corresponde y conserva un conjunto de datos simulados propio
 para funcionar sin API.
 
-### Modo real
+### Modo gateway (principal)
 
-Para consultar InfluxDB:
+Lee el gateway de `firmware/gateway_ap` por HTTP:
+
+```env
+BACKEND_MODO=gateway
+GATEWAY_URL=http://192.168.4.1
+```
+
+La laptop que corre el backend debe estar conectada a la red Wi-Fi del
+gateway (`GEMELO-L419`). Cada `SONDEO_S` segundos el backend:
+
+1. Pide `/api/estado`; si el gateway no tiene hora, se la envía con `/api/hora`.
+2. Pide `/api/ultimos` para el estado en vivo de cada nodo.
+3. Descarga los registros nuevos de `/api/datos` y los guarda en
+   `backend/datos/gemelo.sqlite` (historial y CSV). Si el backend se reinicia,
+   continúa desde el último registro guardado.
+
+Si el gateway no responde, la página muestra `Gateway no disponible` y los
+sensores pasan a *sin datos* cuando vence su `caduca_s`.
+
+### Modo real (InfluxDB)
+
+Para consultar InfluxDB (stack de `infra/`):
 
 ```env
 BACKEND_MODO=real
@@ -178,11 +212,13 @@ Todas las rutas usan el prefijo `/api/v1`.
 
 ### `GET /salud`
 
-Devuelve el estado del backend, InfluxDB y la conexión general de sensores:
+Devuelve el estado del backend, de la fuente de datos y la conexión general
+de sensores:
 
 ```json
 {
   "backend": "ok",
+  "fuente": "gateway",
   "influx": "ok",
   "conexion": "en_linea",
   "sensores_esperados": 6,
@@ -190,8 +226,10 @@ Devuelve el estado del backend, InfluxDB y la conexión general de sensores:
 }
 ```
 
-`conexion` puede ser `en_linea`, `parcial` o `sin_datos`. En modo real, si
-InfluxDB no está disponible, la ruta responde con HTTP `503`.
+`fuente` es `gateway`, `real` (InfluxDB) o `demo`. El campo `influx` indica si
+esa fuente responde (se conserva el nombre por compatibilidad). `conexion`
+puede ser `en_linea`, `parcial` o `sin_datos`. Si la fuente (gateway o
+InfluxDB) no responde, la ruta responde con HTTP `503`.
 
 ### `GET /sensores`
 
@@ -250,15 +288,15 @@ fuente de configuración. Actualmente declara los seis nodos del proyecto:
 El nodo 3 (gas/humo con MQ-2) se retiró porque el sensor no se compró; los
 demás nodos conservan su número.
 
-Los ids, los measurements y los nombres de las variables coinciden con el JSON
-que publica `reference/gemelo-digital-L418/firmware/gateway/gateway.ino` y con los
-fields que Telegraf guarda en InfluxDB. La posición de cada sensor en el plano
+`nodo`, `medicion` y los nombres de las variables coinciden con el `nodo`, el
+`tipo` y los campos del JSON que arma `firmware/gateway_ap/gateway_ap.ino`
+(y con los fields que Telegraf guarda en InfluxDB en el modo real). La posición de cada sensor en el plano
 se configura en `web/js/sensores-config.js` usando los mismos ids.
 
 Para agregar otro sensor del mismo tipo, se agrega una entrada YAML con un
 `id`, `nodo`, `medicion`, variables, unidad y regla de estado. No es necesario
 modificar el código del backend. Los nombres de las variables deben coincidir
-exactamente con los fields almacenados en InfluxDB.
+exactamente con los campos del JSON del gateway.
 
 ## Reglas de estado
 
@@ -323,29 +361,24 @@ Abrir <http://127.0.0.1:8000>. El frontend detecta que está en el mismo
 origen y usa la API de ese mismo servidor. Con `WEB_DIR` se puede indicar otra
 carpeta del frontend (por ejemplo `/app/web` en Docker).
 
-### Leer los sensores reales de CO₂ y ruido
+### Leer los seis sensores reales (gateway)
 
-1. Levantar el stack de adquisición (`servidor_iot/`: Mosquitto, Telegraf e
-   InfluxDB) y encender el gateway y los seis nodos (CO₂, audio, luz,
-   ocupación, puerta y ambiente). El gateway debe publicar con
-   `GRUPO = "grupo1"` (o el valor de `GRUPO` del backend).
-2. Crear un token de **solo lectura** del bucket `gemelo` (ver la guía del
-   backend, sección 10).
+1. Flashear `firmware/gateway_ap` y los seis nodos (ver
+   [`firmware/README.md`](firmware/README.md)) y encenderlos.
+2. Conectar la laptop a la red Wi-Fi `GEMELO-L419`.
 3. En `backend/.env`:
 
    ```env
-   BACKEND_MODO=real
-   INFLUX_URL=http://localhost:8086
-   INFLUX_TOKEN_LECTURA=<token de solo lectura>
-   GRUPO=grupo1
+   BACKEND_MODO=gateway
+   GATEWAY_URL=http://192.168.4.1
    ```
 
 4. Ejecutar el comando de arriba y abrir <http://127.0.0.1:8000>.
 
 El indicador del encabezado muestra `En línea` (los seis sensores envían),
 `Conexión parcial` (solo algunos), `Sin datos de sensores` o
-`InfluxDB no disponible`. Si InfluxDB falla, los sensores aparecen como
-*sin datos*; los datos DEMO solo se usan cuando no hay backend.
+`Gateway no disponible`. Si el gateway no responde, los sensores aparecen
+como *sin datos*; los datos DEMO solo se usan cuando no hay backend.
 
 ## Ejecutar frontend y backend por separado
 
@@ -370,8 +403,9 @@ Luego abrir:
 
 <http://127.0.0.1:5500>
 
-Con `BACKEND_MODO=demo`, la aplicación funciona sin InfluxDB. Con
-`BACKEND_MODO=real`, deben estar disponibles InfluxDB, el bucket, la
+Con `BACKEND_MODO=demo`, la aplicación funciona sin hardware. Con
+`BACKEND_MODO=gateway`, la laptop debe estar conectada a la red del gateway.
+Con `BACKEND_MODO=real`, deben estar disponibles InfluxDB, el bucket, la
 organización, el token y los fields declarados en el YAML.
 
 ## Pruebas y validación
@@ -434,7 +468,16 @@ secreto o archivo de entorno protegido. No se debe incluir el token en el
 3. Revisar `CORS_ORIGENES` si la página se sirve desde otro puerto.
 4. Confirmar que el frontend se abrió mediante HTTP y no con `file://`.
 
-### El backend real responde `503`
+### La página muestra `Gateway no disponible`
+
+1. Confirmar que la laptop está conectada a la red `GEMELO-L419`.
+2. Abrir <http://192.168.4.1> (página propia del gateway) o
+   <http://192.168.4.1/api/estado>.
+3. Revisar `GATEWAY_URL` en `backend/.env` (en modo estación, la IP que asignó
+   el router al gateway, o `http://gemelo-gateway.local`).
+4. Mirar en el monitor Serial del gateway el motivo del último reinicio.
+
+### El backend en modo real (InfluxDB) responde `503`
 
 Comprobar:
 
@@ -452,8 +495,10 @@ que supera `caduca_s` se muestra como `sin_datos`; esto es intencional.
 
 ### El historial está vacío
 
-Comprobar que la variable solicitada exista en el YAML y que InfluxDB tenga
-datos dentro del rango seleccionado. Los huecos no se rellenan con ceros.
+Comprobar que la variable solicitada exista en el YAML y que haya datos
+dentro del rango seleccionado. En modo gateway el historial empieza cuando el
+backend descarga por primera vez lo guardado en el gateway
+(`backend/datos/gemelo.sqlite`). Los huecos no se rellenan con ceros.
 
 ## Seguridad
 
