@@ -15,7 +15,7 @@ def test_api_demo():
     assert health.status_code == 200
     assert health.json()["influx"] == "ok"
     assert latest.json()["origen"] == "demo"
-    assert len(latest.json()["sensores"]) == 7
+    assert len(latest.json()["sensores"]) == 6
     assert catalog.json()["aula"] == "L419"
 
 

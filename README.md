@@ -40,7 +40,7 @@ Sensores → Gateway ESP32 → MQTT → Telegraf → InfluxDB
 │   │   ├── registro.py      # carga y valida sensores.yaml
 │   │   ├── modelos.py       # modelos Pydantic de la API
 │   │   ├── influx.py        # consultas Flux de solo lectura
-│   │   ├── estados.py       # reglas de estado de los siete nodos
+│   │   ├── estados.py       # reglas de estado de los seis nodos
 │   │   ├── servicio.py      # orquestación y contrato de respuestas
 │   │   ├── sondeo.py        # sondeo periódico y distribución SSE
 │   │   ├── simulador.py     # lecturas del modo DEMO
@@ -130,7 +130,7 @@ BACKEND_MODO=demo
 
 No necesita InfluxDB ni token. El simulador del backend genera lecturas para
 CO₂ y audio, manteniendo el mismo contrato de la API real. El catálogo ya
-expone los siete sensores; para probar gas, luz, ocupación, puerta y ambiente
+expone los seis sensores; para probar luz, ocupación, puerta y ambiente
 con valores hay que usar `BACKEND_MODO=real`. El frontend muestra la etiqueta
 `DEMO` cuando corresponde y conserva un conjunto de datos simulados propio
 para funcionar sin API.
@@ -185,8 +185,8 @@ Devuelve el estado del backend, InfluxDB y la conexión general de sensores:
   "backend": "ok",
   "influx": "ok",
   "conexion": "en_linea",
-  "sensores_esperados": 7,
-  "sensores_con_datos": 7
+  "sensores_esperados": 6,
+  "sensores_con_datos": 6
 }
 ```
 
@@ -238,15 +238,17 @@ stream se interrumpe.
 ## Catálogo de sensores
 
 El archivo [`backend/config/sensores.yaml`](backend/config/sensores.yaml) es la
-fuente de configuración. Actualmente declara los siete nodos del proyecto:
+fuente de configuración. Actualmente declara los seis nodos del proyecto:
 
 - `sensor-co2-01`, nodo 1, measurement `co2`.
 - `sensor-audio-01`, nodo 2, measurement `audio`.
-- `sensor-gas-01`, nodo 3, measurement `gas`.
 - `sensor-luz-01`, nodo 4, measurement `luz`.
 - `sensor-termico-01`, nodo 5, measurement `termico`.
 - `sensor-magnetico-01`, nodo 6, measurement `magnetico`.
 - `sensor-ambiente-01`, nodo 7, measurement `ambiente`.
+
+El nodo 3 (gas/humo con MQ-2) se retiró porque el sensor no se compró; los
+demás nodos conservan su número.
 
 Los ids, los measurements y los nombres de las variables coinciden con el JSON
 que publica `reference/gemelo-digital-L418/firmware/gateway/gateway.ino` y con los
@@ -262,7 +264,7 @@ exactamente con los fields almacenados en InfluxDB.
 
 El backend calcula el estado para que el frontend solo lo presente:
 
-- **CO₂ y gas (`nivel_nodo`):** respetan el `nivel` enviado por el nodo
+- **CO₂ (`nivel_nodo`):** respeta el `nivel` enviado por el nodo
   (`NORMAL`, `ALERTA`, `CRITICO`, `CALENTANDO`, `SIN_DATO`). Los valores
   inválidos de CO₂ (`-1`, `-2`) y `FALLO_SENSOR` pasan a `falla`.
 - **Audio (`anomalias_nodo`):** detecta calibración, `FALLO_AUDIO` y otras
@@ -324,7 +326,7 @@ carpeta del frontend (por ejemplo `/app/web` en Docker).
 ### Leer los sensores reales de CO₂ y ruido
 
 1. Levantar el stack de adquisición (`servidor_iot/`: Mosquitto, Telegraf e
-   InfluxDB) y encender el gateway y los siete nodos (CO₂, audio, gas, luz,
+   InfluxDB) y encender el gateway y los seis nodos (CO₂, audio, luz,
    ocupación, puerta y ambiente). El gateway debe publicar con
    `GRUPO = "grupo1"` (o el valor de `GRUPO` del backend).
 2. Crear un token de **solo lectura** del bucket `gemelo` (ver la guía del
@@ -340,7 +342,7 @@ carpeta del frontend (por ejemplo `/app/web` en Docker).
 
 4. Ejecutar el comando de arriba y abrir <http://127.0.0.1:8000>.
 
-El indicador del encabezado muestra `En línea` (los siete sensores envían),
+El indicador del encabezado muestra `En línea` (los seis sensores envían),
 `Conexión parcial` (solo algunos), `Sin datos de sensores` o
 `InfluxDB no disponible`. Si InfluxDB falla, los sensores aparecen como
 *sin datos*; los datos DEMO solo se usan cuando no hay backend.
@@ -384,7 +386,7 @@ pytest -q
 Las pruebas cubren:
 
 - Carga del catálogo y rechazo de IDs duplicados.
-- Estados de CO₂, gas y del resto de nodos.
+- Estados de CO₂ y del resto de nodos.
 - Conversión de errores de sensores.
 - Endpoints básicos del modo DEMO.
 - Rechazo de variables de historial no declaradas.

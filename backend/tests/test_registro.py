@@ -11,7 +11,6 @@ def test_carga_catalogo():
     assert {sensor.id for sensor in registro.sensores} == {
         "sensor-co2-01",
         "sensor-audio-01",
-        "sensor-gas-01",
         "sensor-luz-01",
         "sensor-termico-01",
         "sensor-magnetico-01",

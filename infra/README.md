@@ -32,7 +32,7 @@ Servicios:
 
 - **Mosquitto** en `localhost:1883`. El gateway publica en
   `utec/gemelo/<grupo>/<nodo>/<tipo>`.
-- **Telegraf** se suscribe a los siete tipos (`co2`, `audio`, `gas`, `luz`,
+- **Telegraf** se suscribe a los seis tipos (`co2`, `audio`, `luz`,
   `termico`, `magnetico`, `ambiente`) y escribe en InfluxDB.
 - **InfluxDB** en <http://localhost:8086>, organización `utec`, bucket `gemelo`.
 - **Grafana** en <http://localhost:3000>.

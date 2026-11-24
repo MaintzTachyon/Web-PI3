@@ -79,7 +79,6 @@ function simboloPara(tipo) {
   const simbolos = {
     co2: "CO₂",
     audio: "dB",
-    gas: "Gas",
     luz: "lx",
     termico: "◉",
     magnetico: "◇",

@@ -16,9 +16,6 @@ CO2 = {"nodo": 1, "mac": "AA:BB:CC:DD:EE:01", "seq": 120, "ts": None, "uptime_ms
 AUDIO = {"nodo": 2, "mac": "AA:BB:CC:DD:EE:02", "seq": 900, "ts": None, "uptime_ms": 900000, "perdidos": 0,
          "tipo": "audio", "leq_db": 62.4, "lmax_db": 71.0, "pico_db": 80.2, "base_db": 41.5, "freq_dom_hz": 512,
          "tonal": 0.21, "bloques_fuertes": 3, "calibrando": 0, "anomalias": "RUIDO_IMPACTO", "anom_bits": 2}
-GAS = {"nodo": 3, "mac": "AA:BB:CC:DD:EE:03", "seq": 300, "ts": None, "uptime_ms": 600000, "perdidos": 0,
-       "tipo": "gas", "v_ao": 1.18, "rs_r0": 0.94, "ppm_glp_est": 135.0, "nivel": "NORMAL", "do_alarma": 0,
-       "calentando": 0, "anomalias": "NINGUNA", "anom_bits": 0}
 LUZ = {"nodo": 4, "mac": "AA:BB:CC:DD:EE:04", "seq": 400, "ts": None, "uptime_ms": 600000, "perdidos": 0,
        "tipo": "luz", "lux": 320.5, "lux_min": 300.0, "lux_max": 340.0, "lux_mesa_est": 192.3,
        "luces_cambio": 0, "anomalias": "NINGUNA", "anom_bits": 0}
@@ -86,12 +83,11 @@ def servicio(datos) -> tuple[Servicio, InfluxFalso]:
     return Servicio(cargar_registro(SENSORES_PATH), repo, "real"), repo
 
 
-def test_lee_los_siete_sensores_desde_influx():
+def test_lee_los_seis_sensores_desde_influx():
     ahora = datetime.now(timezone.utc)
     srv, repo = servicio({
         "co2": telegraf(CO2, ahora),
         "audio": telegraf(AUDIO, ahora),
-        "gas": telegraf(GAS, ahora),
         "luz": telegraf(LUZ, ahora),
         "termico": telegraf(TERMICO, ahora),
         "magnetico": telegraf(MAGNETICO, ahora),
@@ -99,7 +95,7 @@ def test_lee_los_siete_sensores_desde_influx():
     })
     respuesta = asyncio.run(srv.ultimas())
     assert respuesta.origen == "real"
-    assert len(respuesta.sensores) == 7
+    assert len(respuesta.sensores) == 6
     lecturas = {lectura.id: lectura for lectura in respuesta.sensores}
 
     co2 = lecturas["sensor-co2-01"]
@@ -113,10 +109,6 @@ def test_lee_los_siete_sensores_desde_influx():
     assert audio.valor == 62.4 and audio.unidad == "dB" and audio.estado == "alerta"
     assert audio.variables["freq_dom_hz"].valor == 512
     assert audio.anomalias == ["RUIDO_IMPACTO"]
-
-    gas = lecturas["sensor-gas-01"]
-    assert gas.valor == 135.0 and gas.unidad == "ppm" and gas.estado == "normal"
-    assert gas.variables["rs_r0"].valor == 0.94
 
     luz = lecturas["sensor-luz-01"]
     assert luz.valor == 320.5 and luz.unidad == "lux" and luz.estado == "normal"
@@ -134,7 +126,7 @@ def test_lee_los_siete_sensores_desde_influx():
     assert ambiente.valor == 22.5 and ambiente.estado == "normal"
     assert ambiente.variables["pres_hpa"].valor == 1013.2
 
-    for medicion, nodo in [("co2", 1), ("audio", 2), ("gas", 3), ("luz", 4), ("termico", 5), ("magnetico", 6), ("ambiente", 7)]:
+    for medicion, nodo in [("co2", 1), ("audio", 2), ("luz", 4), ("termico", 5), ("magnetico", 6), ("ambiente", 7)]:
         assert any(f'r._measurement == "{medicion}"' in q and f'r.nodo == "{nodo}" and r.grupo == "grupo1"' in q for q in repo.consultas)
     json.dumps(respuesta.model_dump(mode="json"))
 
@@ -155,14 +147,12 @@ def test_fallos_reales():
     srv, _ = servicio({
         "co2": telegraf(fallo_co2, ahora),
         "audio": telegraf(fallo_audio, ahora),
-        "gas": telegraf({**GAS, "anomalias": "FALLO_SENSOR", "anom_bits": 1}, ahora),
     })
     lecturas = {lectura.id: lectura for lectura in asyncio.run(srv.ultimas()).sensores}
     assert lecturas["sensor-co2-01"].estado == "falla"
     assert lecturas["sensor-co2-01"].valor is None
     assert lecturas["sensor-co2-01"].variables["co2_ppm"].valor is None
     assert lecturas["sensor-audio-01"].estado == "falla"
-    assert lecturas["sensor-gas-01"].estado == "falla"
 
 
 def test_sensor_apagado_queda_sin_datos():
@@ -185,7 +175,7 @@ def test_stream_emite_lecturas_y_conexion():
         await stream.aclose()
         return eventos
 
-    eventos = asyncio.run(primeros(8))
+    eventos = asyncio.run(primeros(7))
     assert eventos[0].startswith("event: lectura") and '"sensor-co2-01"' in eventos[0]
     assert eventos[1].startswith("event: lectura") and '"sensor-audio-01"' in eventos[1]
-    assert eventos[7].startswith("event: conexion") and '"parcial"' in eventos[7]
+    assert eventos[6].startswith("event: conexion") and '"parcial"' in eventos[6]

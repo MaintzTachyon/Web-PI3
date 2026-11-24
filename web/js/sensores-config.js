@@ -32,17 +32,6 @@ export const SENSORES_CONFIG = [
     decimales: 1,
   },
   {
-    id: "sensor-gas-01",
-    tipo: "gas",
-    medicion: "gas",
-    etiqueta: "Gas / humo",
-    unidad: "ppm",
-    variable_principal: "ppm_glp_est",
-    x: 785,
-    y: 420,
-    decimales: 0,
-  },
-  {
     id: "sensor-luz-01",
     tipo: "luz",
     medicion: "luz",

@@ -35,23 +35,6 @@ sensores:
       tonal: {etiqueta: "Concentración espectral", unidad: "0-1", decimales: 2, agregacion: mean}
       bloques_fuertes: {etiqueta: "Bloques fuertes", unidad: bloques, decimales: 0, agregacion: max}
 
-  # Nodo 3 — MQ-2 (gas / humo)
-  - id: sensor-gas-01
-    nodo: 3
-    medicion: gas
-    etiqueta: "Gas / humo"
-    periodo_s: 2
-    caduca_s: 15
-    ubicacion: {x: 785, y: 420}
-    variable_principal: ppm_glp_est
-    estado: {regla: nivel_nodo, campo: nivel}
-    variables:
-      ppm_glp_est: {etiqueta: "GLP equivalente", unidad: ppm, decimales: 0, agregacion: mean}
-      rs_r0: {etiqueta: "Relación Rs/R0", unidad: ratio, decimales: 3, agregacion: mean}
-      v_ao: {etiqueta: "Voltaje MQ-2", unidad: V, decimales: 3, agregacion: mean}
-      do_alarma: {etiqueta: "Alarma digital", unidad: "0/1", decimales: 0, agregacion: max}
-      calentando: {etiqueta: "Calentando", unidad: "0/1", decimales: 0, agregacion: max, uso: diagnostico}
-
   # Nodo 4 — BH1750 (iluminación)
   - id: sensor-luz-01
     nodo: 4

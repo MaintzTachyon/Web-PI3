@@ -1,6 +1,6 @@
 // Gateway ESP32 v4 (NUBE): ESP-NOW (nodos) -> JSON -> MQTT con TLS
 // Versión para el servidor de producción (servidor_iot_prod): Mosquitto con usuario,
-// contraseña y TLS en el puerto 8883. Decodifica los 7 tipos de nodo de paquetes.h.
+// contraseña y TLS en el puerto 8883. Decodifica los 6 tipos de nodo (el de gas MQ-2 se retiró) de paquetes.h.
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
@@ -72,8 +72,6 @@ const char* const AN_TER[] = {"FALLO_SENSOR", "CONTEO_CORREGIDO", "OBJETO_ESTATI
 const char* const AN_MAG[] = {"FALLO_SENSOR", "PUERTA_ABIERTA_PROLONGADA"};
 const char* const AN_AMB[] = {"FALLO_SENSOR", "TEMP_FUERA_CONFORT", "HUMEDAD_ALTA", "CAMBIO_RAPIDO_TEMP"};
 const char* const AN_LUZ[] = {"FALLO_SENSOR", "ILUMINACION_BAJA"};
-const char* const AN_GAS[] = {"FALLO_SENSOR", "GAS_DETECTADO", "GAS_CRITICO"};
-const char* const NIVEL_GAS[] = {"NORMAL", "ALERTA", "CRITICO", "CALENTANDO", "SIN_DATO"};
 
 // ================= JSON MÍNIMO =================
 struct Json {
@@ -243,18 +241,6 @@ void procesar(const Mensaje& m) {
     j.num("luces_cambio", p.luces_cambio);
     anomalias(j, p.anomalias, AN_LUZ, 2);
 
-  } else if (h.tipo == TIPO_GAS && m.len == (int)sizeof(PaqueteGas)) {
-    PaqueteGas p;
-    memcpy(&p, m.datos, sizeof(p));
-    tipo = "gas";
-    j.str("tipo", tipo);
-    j.flo("v_ao", p.v_ao, 3);
-    j.flo("rs_r0", p.rs_r0, 3);
-    j.flo("ppm_glp_est", p.ppm_glp_est, 0);
-    j.str("nivel", p.nivel < 5 ? NIVEL_GAS[p.nivel] : "DESCONOCIDO");
-    j.num("do_alarma", p.do_alarma);
-    j.num("calentando", p.calentando);
-    anomalias(j, p.anomalias, AN_GAS, 3);
   } else {
     Serial.printf("# paquete invalido: tipo=%u len=%d (de %s)\n", h.tipo, m.len, mac);
     return;

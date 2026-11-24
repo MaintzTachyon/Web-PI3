@@ -66,33 +66,6 @@ class Simulador:
                 "seq": int(elapsed / sensor.periodo_s),
                 "perdidos": 0,
             }
-        # ---------- Gas ----------
-        elif medicion == "gas":
-            value = round(100 + 300 * math.sin(elapsed / 30), 1)
-            # Cada 45 segundos, simular lectura de gas inválida
-            if int(elapsed) % 45 == 0:
-                return {
-                    "ppm_glp_est": -1,  # valor inválido → pasa a "falla"
-                    "rs_r0": round(0.9 + 0.1 * math.cos(elapsed / 40), 2),
-                    "v_ao": round(1.0 + 0.3 * math.sin(elapsed / 15), 2),
-                    "do_alarma": 0,
-                    "calentando": 0,
-                    "anomalias": "FALLO_SENSOR",
-                    "anom_bits": 1,  # GAS_BIT_FALLO
-                    "seq": int(elapsed / sensor.periodo_s),
-                    "perdidos": 0,
-                }
-            return {
-                "ppm_glp_est": max(0, value),
-                "rs_r0": round(0.9 + 0.1 * math.cos(elapsed / 40), 2),
-                "v_ao": round(1.0 + 0.3 * math.sin(elapsed / 15), 2),
-                "do_alarma": 0,
-                "calentando": 0,
-                "anomalias": "NINGUNA",
-                "anom_bits": 0,
-                "seq": int(elapsed / sensor.periodo_s),
-                "perdidos": 0,
-            }
         # ---------- Luz ----------
         elif medicion == "luz":
             value = round(200 + 300 * math.sin(elapsed / 20), 1)
