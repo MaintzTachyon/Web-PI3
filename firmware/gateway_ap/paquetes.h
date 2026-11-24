@@ -25,15 +25,6 @@ enum : uint8_t {
   CO2_NIVEL_SIN_DATO   = 4
 };
 
-// Nivel de gas (MQ-2)
-enum : uint8_t {
-  GAS_NIVEL_NORMAL     = 0,
-  GAS_NIVEL_ALERTA     = 1,
-  GAS_NIVEL_CRITICO    = 2,
-  GAS_NIVEL_CALENTANDO = 3,
-  GAS_NIVEL_SIN_DATO   = 4
-};
-
 // Bits de anomalías CO2
 #define CO2_BIT_FALLO_SENSOR  (1 << 0)
 #define CO2_BIT_PICO_RAPIDO   (1 << 1)
@@ -68,7 +59,6 @@ enum : uint8_t {
 // Bits de anomalías gas (MQ-2)
 #define GAS_BIT_FALLO          (1 << 0)
 #define GAS_BIT_GAS_DETECTADO  (1 << 1)
-#define GAS_BIT_CRITICO        (1 << 2)
 
 #define TEMP_SIN_DATO  (-128)
 
@@ -158,8 +148,6 @@ struct __attribute__((packed)) PaqueteGas {
   uint8_t  do_alarma;   // 1 si la salida digital del comparador indica gas
   uint8_t  calentando;  // 1 durante el calentamiento o la calibración de R0
   uint8_t  anomalias;   // GAS_BIT_*
-  float    ppm_glp_est;  // ppm de GLP equivalente, estimación referencial (NAN si no está listo)
-  uint8_t  nivel;        // GAS_NIVEL_*
 };
 
 static_assert(sizeof(PaqueteCO2)   <= 250, "Paquete CO2 excede ESP-NOW");

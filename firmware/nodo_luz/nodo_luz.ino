@@ -8,7 +8,7 @@
 
 // ================= RED =================
 uint8_t MAC_GATEWAY[6] = {0x58, 0x2A, 0xBD, 0x72, 0x03, 0xDC}; // MAC STA del ESP32 v4
-const char*   SSID_ROUTER   = "*******";   // red del gateway (solo para hallar el canal)
+const char*   SSID_ROUTER   = "GEMELO-L419";   // red del gateway (solo para hallar el canal)
 const uint8_t CANAL_DEFECTO = 1;
 const uint8_t NODO_ID       = 4;
 
@@ -131,6 +131,7 @@ void setup() {
   Serial.println("ms,lux,lux_min,lux_max,lux_mesa_est,luces_cambio,anomalias,envio_ok");
 
   tMuestra = tUltEnvio = millis();
+  nodoVigilanteIniciar();   // reinicio automático si el loop se traba > 5 s
 }
 
 void loop() {

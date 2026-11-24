@@ -7,7 +7,7 @@
 
 // ---------- RED ----------
 uint8_t MAC_GATEWAY[6] = {0x58, 0x2A, 0xBD, 0x72, 0x03, 0xDC}; // MAC STA del ESP32 v4
-const char*   SSID_ROUTER   = "******";
+const char*   SSID_ROUTER   = "GEMELO-L419";   // red que crea gateway_ap.ino (de ahí se toma el canal)
 const uint8_t CANAL_DEFECTO = 1;
 const uint8_t NODO_ID       = 2;
 
@@ -124,11 +124,13 @@ void setup() {
 
   if (i2s_driver_install(I2S_PORT, &cfg, 0, NULL) != ESP_OK ||
       i2s_set_pin(I2S_PORT, &pins) != ESP_OK) {
-    Serial.println("# ERROR: no se pudo iniciar I2S.");
-    while (1) delay(1000);
+    Serial.println("# ERROR: no se pudo iniciar I2S. Reiniciando en 3 s...");
+    delay(3000);
+    ESP.restart();
   }
 
   tVentana = tUltValido = millis();
+  nodoVigilanteIniciar();   // reinicio automático si el loop se traba > 5 s
   Serial.println("# Calibrando ruido de fondo: mantener silencio 5 s.");
   Serial.println("ms,leq_db,lmax_db,pico_db,base_db,freq_hz,tonal,"
                  "bloques_fuertes,calibrando,anomalias,envio_ok");

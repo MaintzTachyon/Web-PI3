@@ -1,13 +1,14 @@
 // Nodo magnético (KY-024 Hall) -> ESP-NOW -> Gateway ESP32 v4
 // Estado de la puerta del salón L418: sensor en el marco, imán en la hoja de la puerta.
-// La salida del KY-024 es INVERTIDA: imán cerca (puerta cerrada) = campo alto = lectura BAJA.
+// La salida analógica del KY-024 está en ~2000 sin imán; al acercar el imán SUBE o BAJA
+// según el polo. Por eso se mide cuánto se ALEJA del valor de reposo (cualquier polo sirve).
 #include <Arduino.h>
 #include "paquetes.h"
 #include "espnow_nodo.h"
 
 // ================= RED =================
-uint8_t MAC_GATEWAY[6] = {0x58, 0x2A, 0xBD, 0x72, 0x03, 0xDC}; // MAC STA del ESP32 v4
-const char*   SSID_ROUTER   = "TU_RED_WIFI";   // red del gateway (solo para hallar el canal)
+uint8_t MAC_GATEWAY[6] = {0x58, 0x2A, 0xBD, 0x72, 0x03, 0xDC}; // MAC STA del ESP32 que corre gateway_ap.ino
+const char*   SSID_ROUTER   = "GEMELO-L419";   // red que crea gateway_ap.ino (AP_SSID); de ahí se toma el canal
 const uint8_t CANAL_DEFECTO = 1;
 const uint8_t NODO_ID       = 6;
 
@@ -17,9 +18,12 @@ const uint8_t NODO_ID       = 6;
 #define PIN_AO 34
 
 // ================= UMBRALES (lectura de 12 bits, KY-024 alimentado a 3.3 V) =================
-const int UMBRAL_CERRADA = 1200;   // por debajo: imán cerca -> puerta cerrada
-const int UMBRAL_ABIERTA = 1800;   // por encima: imán lejos -> puerta abierta
+const int REPOSO_RAW     = 2000;   // lectura SIN imán (ver "campo_raw" con la puerta abierta y ajustar)
+const int DESV_CERRADA   = 400;    // se aleja más de esto del reposo: imán cerca -> puerta cerrada
+const int DESV_ABIERTA   = 200;    // vuelve a menos de esto: imán lejos -> puerta abierta
                                    // entre ambos: se mantiene el estado anterior (histéresis)
+// Si el imán es débil y la puerta no pasa a "cerrada", bajar DESV_CERRADA (p. ej. 250)
+// y DESV_ABIERTA (p. ej. 120). Con DEBUG_RAW 1 se ve la lectura en el Monitor Serie.
 const unsigned long ANTIRREBOTE_MS = 150;  // el nuevo estado debe sostenerse este tiempo
 const unsigned long MUESTREO_MS    = 50;   // 20 lecturas por segundo
 const int MUESTRAS_PROMEDIO        = 8;    // cada lectura promedia 8 conversiones del ADC
@@ -31,7 +35,7 @@ const unsigned long ABIERTA_PROLONGADA_MS = 10UL * 60UL * 1000UL; // 10 min abie
 // Fallo: lectura pegada al máximo (cortocircuito o pull-up sin sensor)
 // o ruido excesivo (pin flotando por un cable suelto) durante varios segundos seguidos.
 const int RAW_EXTREMO_ALTO = 4075;
-const int RUIDO_MAX        = 1000;   // variación máx-mín aceptable dentro de 1 s
+const int SALTO_MEDIO_MAX  = 250;    // salto promedio entre lecturas seguidas (pin al aire = saltos grandes)
 const int SEG_PARA_FALLO   = 3;
 
 // 1: imprime la lectura cada 100 ms (para comprobar o ajustar los umbrales)
@@ -49,7 +53,8 @@ unsigned long msAbiertaVent = 0;
 int  rawActual = 0;
 bool hayEvento = false;
 
-int  rawMinSeg = 4095, rawMaxSeg = 0, segAnomalos = 0;
+int  rawMinSeg = 4095, segAnomalos = 0, rawPrev = -1, nSeg = 0;
+long saltosSeg = 0;
 bool fallo = false;
 
 unsigned long tMuestra = 0, tUltEnvio = 0, tSegundo = 0;
@@ -64,15 +69,16 @@ int leerRaw() {
 // Histéresis + antirrebote: solo cambia si la lectura cruza el umbral contrario
 // y se mantiene del otro lado durante ANTIRREBOTE_MS.
 void actualizarEstado(int raw, unsigned long ahora) {
+  int desv = abs(raw - REPOSO_RAW);   // distancia al reposo, sin importar el polo del imán
   if (!estadoIniciado) {   // primera lectura: se decide por el punto medio
-    abierta = raw > (UMBRAL_CERRADA + UMBRAL_ABIERTA) / 2;
+    abierta = desv < (DESV_CERRADA + DESV_ABIERTA) / 2;
     tAbierta = ahora;
     estadoIniciado = true;
     return;
   }
   int objetivo = -1;
-  if (raw < UMBRAL_CERRADA)      objetivo = 0;
-  else if (raw > UMBRAL_ABIERTA) objetivo = 1;
+  if (desv > DESV_CERRADA)      objetivo = 0;   // imán cerca: cerrada
+  else if (desv < DESV_ABIERTA) objetivo = 1;   // imán lejos: abierta
 
   if (objetivo < 0 || objetivo == (int)abierta) { hayCandidato = false; return; }
   if (!hayCandidato || candidatoAbierta != (bool)objetivo) {
@@ -95,16 +101,22 @@ void actualizarEstado(int raw, unsigned long ahora) {
 // Revisa una vez por segundo si la señal es físicamente creíble.
 void revisarFallo(int raw, unsigned long ahora) {
   rawMinSeg = min(rawMinSeg, raw);
-  rawMaxSeg = max(rawMaxSeg, raw);
+  if (rawPrev >= 0) { saltosSeg += abs(raw - rawPrev); nSeg++; }
+  rawPrev = raw;
   if (ahora - tSegundo < 1000) return;
   tSegundo = ahora;
-  bool anomalo = (rawMaxSeg - rawMinSeg > RUIDO_MAX) || (rawMinSeg >= RAW_EXTREMO_ALTO);
+  // Abrir la puerta cambia la lectura de forma suave; un cable suelto la hace saltar
+  // en cada muestra. Antes se usaba el rango máx-mín, y abrir la puerta despacio
+  // marcaba FALLO y congelaba el estado de la puerta.
+  int saltoMedio = nSeg ? (int)(saltosSeg / nSeg) : 0;
+  bool anomalo = (saltoMedio > SALTO_MEDIO_MAX) || (rawMinSeg >= RAW_EXTREMO_ALTO);
   segAnomalos = anomalo ? segAnomalos + 1 : 0;
   bool antes = fallo;
   fallo = segAnomalos >= SEG_PARA_FALLO;
   if (fallo != antes) hayEvento = true;
   rawMinSeg = 4095;
-  rawMaxSeg = 0;
+  saltosSeg = 0;
+  nSeg = 0;
 }
 
 // ================= ENVÍO =================
@@ -143,10 +155,11 @@ void setup() {
     Serial.println("# ERROR: no se pudo iniciar ESP-NOW");
   Serial.printf("# Nodo magnetico (puerta) id=%d  MAC=%s  canal=%d\n",
                 NODO_ID, WiFi.macAddress().c_str(), g_canal);
-  Serial.printf("# Umbrales: cerrada < %d, abierta > %d\n", UMBRAL_CERRADA, UMBRAL_ABIERTA);
+  Serial.printf("# Reposo=%d  cerrada si se aleja > %d, abierta si < %d\n", REPOSO_RAW, DESV_CERRADA, DESV_ABIERTA);
   Serial.println("ms,puerta_abierta,aperturas,seg_abierta,campo_raw,anomalias,envio_ok");
 
   tMuestra = tUltEnvio = tSegundo = millis();
+  nodoVigilanteIniciar();   // reinicio automático si el loop se traba > 5 s
 }
 
 void loop() {

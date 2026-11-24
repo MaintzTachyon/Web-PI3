@@ -10,7 +10,7 @@
 
 // ================= RED =================
 uint8_t MAC_GATEWAY[6] = {0x58, 0x2A, 0xBD, 0x72, 0x03, 0xDC}; // MAC STA del ESP32 v4
-const char*   SSID_ROUTER   = "TU_RED_WIFI";   // red del gateway (solo para hallar el canal)
+const char*   SSID_ROUTER   = "GEMELO-L419";   // red del gateway (solo para hallar el canal)
 const uint8_t CANAL_DEFECTO = 1;
 const uint8_t NODO_ID       = 5;
 
@@ -109,7 +109,7 @@ bool iniciarSensor() {
   mlx.setMode(MLX90640_CHESS);
   mlx.setResolution(MLX90640_ADC_18BIT);
   mlx.setRefreshRate(MLX90640_16_HZ);   // ~8 cuadros completos por segundo
-  Wire.setClock(1000000);               // I2C rápido; si hay errores de lectura, bajar a 400000
+  Wire.setClock(400000);                // 400 kHz: estable con cables largos (1 MHz daba errores de lectura)
   return true;
 }
 
@@ -418,6 +418,7 @@ void setup() {
   Serial.println("ms,entradas,salidas,ocupacion_est,personas_en_vista,cruces_dudosos,"
                  "t_fondo,t_max,calibrando,anomalias,envio_ok");
   tUltEnvio = tUltActividad = millis();
+  nodoVigilanteIniciar();   // reinicio automático si el loop se traba > 5 s
 }
 
 void loop() {
