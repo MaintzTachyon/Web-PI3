@@ -259,14 +259,6 @@ void procesar(const Mensaje& m) {
     j.flo("lux_mesa_est", p.lux_mesa_est, 1);
     j.num("luces_cambio", p.luces_cambio);
     anomalias(j, p.anomalias, AN_LUZ, 2);
-  } else if (h.tipo == TIPO_GAS && m.len == (int)sizeof(PaqueteGas)) {
-    PaqueteGas p; memcpy(&p, m.datos, sizeof(p));
-    j.str("tipo", "gas");
-    j.flo("v_ao", p.v_ao, 3);
-    j.flo("rs_r0", p.rs_r0, 3);
-    j.num("do_alarma", p.do_alarma);
-    j.num("calentando", p.calentando);
-    anomalias(j, p.anomalias, AN_GAS, 2);
   } else {
     Serial.printf("# paquete invalido: tipo=%u len=%d (de %s)\n", h.tipo, m.len, mac);
     return;

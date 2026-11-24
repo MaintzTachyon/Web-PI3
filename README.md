@@ -148,17 +148,55 @@ con valores hay que usar `BACKEND_MODO=real`. El frontend muestra la etiqueta
 `DEMO` cuando corresponde y conserva un conjunto de datos simulados propio
 para funcionar sin API.
 
-### Modo gateway (principal)
+### Modo gateway (principal) — datos reales, sin terceros
 
-Lee el gateway de `firmware/gateway_ap` por HTTP:
+Este es el modo recomendado para usar el proyecto de forma local con datos
+reales de los sensores, sin necesidad de InfluxDB, Mosquitto, Telegraf ni AWS.
+El backend lee los datos directamente por HTTP desde el firmware del gateway
+ESP32 (`firmware/gateway_ap`).
+
+#### 1. Flashear el gateway ESP32
+
+1. Conectar el ESP32 v4 (gateway) a la laptop por USB.
+2. Abrir `firmware/gateway_ap/gateway_ap.ino` en Arduino IDE.
+3. Seleccionar la placa ESP32 y el puerto correspondiente.
+4. Compilar y subir el código.
+5. Desconectar el USB. El gateway ahora funciona de forma autónoma con solo
+   energía eléctrica.
+
+#### 2. Conectar a la red del gateway
+
+Al encenderse, el gateway crea una red Wi-Fi llamada **`GEMELO-L419`**.
+Conectar la laptop (o el servidor donde correrá el backend) a esa red.
+
+La dirección IP del gateway es:
+```
+http://192.168.4.1
+```
+
+#### 3. Configurar el backend
+
+Crear o editar `backend/.env`:
 
 ```env
 BACKEND_MODO=gateway
 GATEWAY_URL=http://192.168.4.1
+DATOS_DB=datos/gemelo.sqlite
+SONDEO_S=2
+CORS_ORIGENES=http://127.0.0.1:5500,http://localhost:5500,http://192.168.4.2:8000
 ```
 
-La laptop que corre el backend debe estar conectada a la red Wi-Fi del
-gateway (`GEMELO-L419`). Cada `SONDEO_S` segundos el backend:
+> El archivo `backend/.env` ya viene preconfigurado para este modo.
+
+#### 4. Levantar el backend
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+El backend se conectará al gateway cada `SONDEO_S` segundos y:
 
 1. Pide `/api/estado`; si el gateway no tiene hora, se la envía con `/api/hora`.
 2. Pide `/api/ultimos` para el estado en vivo de cada nodo.
@@ -166,8 +204,31 @@ gateway (`GEMELO-L419`). Cada `SONDEO_S` segundos el backend:
    `backend/datos/gemelo.sqlite` (historial y CSV). Si el backend se reinicia,
    continúa desde el último registro guardado.
 
-Si el gateway no responde, la página muestra `Gateway no disponible` y los
-sensores pasan a *sin datos* cuando vence su `caduca_s`.
+#### 5. Abrir la web
+
+Desde la misma laptop o desde cualquier dispositivo en la red `GEMELO-L419`:
+
+```
+http://192.168.4.2:8000
+```
+
+(sustituir `192.168.4.2` por la IP que le asigne el gateway a tu laptop).
+
+Si abres desde la misma laptop que corre el backend:
+
+```
+http://127.0.0.1:8000
+```
+
+#### 6. Qué verás en la web
+
+- Los **6 sensores** activos: CO₂, audio, luz, ocupación, puerta y ambiente.
+- Cada sensor muestra su valor actual, unidad y estado (normal, alerta, falla, etc.).
+- El historial se puede consultar en rangos de **15 min, 1 h, 6 h, 24 h, 7 días**.
+- El botón **"Descargar reporte CSV"** genera un archivo con los datos del historial.
+
+Si el gateway deja de responder, la página muestra `Gateway no disponible` y
+los sensores pasan a *sin datos* cuando vence su `caduca_s`.
 
 ### Modo real (InfluxDB)
 
