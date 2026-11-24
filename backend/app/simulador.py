@@ -191,11 +191,6 @@ class Simulador:
                 "seq": int(elapsed / sensor.periodo_s),
                 "perdidos": 0,
             }
-            # Cada 55 segundos, simular variación extrema de temperatura u humedad
-            if int(elapsed) % 55 == 0:
-                # Ya regresamos arriba; aquí podríamos return early,
-                # pero para no duplicar lógica, dejamos el return de al final.
-                pass
 
     async def ultima_lectura(self, sensor: SensorConfig) -> dict[str, Any]:
         now = datetime.now(timezone.utc)
